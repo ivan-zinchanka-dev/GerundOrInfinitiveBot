@@ -11,6 +11,7 @@ public class DatabaseService : DbContext
     
     private readonly IConfigurationRoot _configurationRoot;
     public DbSet<Example> Examples { get; private set; }
+    public DbSet<UserData> UserData { get; private set; }
     
     public DatabaseService(IConfigurationRoot configurationRoot)
     {
@@ -21,12 +22,19 @@ public class DatabaseService : DbContext
     {
         optionsBuilder.LogTo(Console.WriteLine, LogLevel.Debug);
         optionsBuilder.UseSqlServer(_configurationRoot.GetConnectionString(SqlServerConnectionKey));
-        
-        //optionsBuilder.LogTo(_logStream.WriteLine, new[] { RelationalEventId.CommandExecuted });
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-
+        modelBuilder.Entity<Example>()
+            .HasKey(example => example.Id);
+        
+        modelBuilder.Entity<UserData>()
+            .HasKey(user=>user.UserId);
+            
+        modelBuilder.Entity<UserData>()
+            .HasOne(user => user.CurrentExample)
+            .WithMany(example => example.CurrentUsers)
+            .HasForeignKey(user => user.CurrentExampleId);
     }
 }

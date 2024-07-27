@@ -1,4 +1,5 @@
 ﻿using GerundOrInfinitiveBot.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -14,9 +15,10 @@ public class BotService
 
     private const string TaskTextPattern = "Complete the sentence with a verb \"{0}\" in correct form.\n{1}";
     private const string DefaultAnswer = "To get help use \"/help\" command";
+    private const string HelpMessage = "[HelpMessage]";
     
     private const string StartCommand = "/start";
-    private const string StopCommand = "/stop";
+    private const string HelpCommand = "/help";
 
     private readonly IConfigurationRoot _configurationRoot; 
     private readonly ITelegramBotClient _botClient;
@@ -65,17 +67,55 @@ public class BotService
                     Console.WriteLine($"User: {sender.FirstName} with id {sender.Id} wrote a message: {message.Text}");
 
                     string answerText = null;
+                    UserData senderData;
                     
-                    switch (message.Text)
+                    using (DatabaseService database = new DatabaseService(_configurationRoot))
                     {
-                        case StartCommand:
-                            Example example = GetNewExample();
-                            answerText = string.Format(TaskTextPattern, example.UsedWord, example.SourceSentence); 
-                            break;
+                        UserData foundUserData = database.UserData
+                            .Include(userData => userData.CurrentExample)
+                            .FirstOrDefault(userData => userData.UserId == sender.Id);
+
+                        if (foundUserData == null)
+                        {
+                            senderData = new UserData(sender.Id);
+                            database.UserData.Add(senderData);
+                            database.SaveChanges();
+                        }
+                        else
+                        {
+                            senderData = foundUserData;
+                        }
                         
-                        default:
-                            answerText = DefaultAnswer;
-                            break;
+                        switch (message.Text)
+                        {
+                            case StartCommand:
+                                Example example = GetNewExample();
+                                answerText = string.Format(TaskTextPattern, example.UsedWord, example.SourceSentence);
+                                senderData.CurrentExample = example;
+                                database.SaveChanges();
+                                break;
+                        
+                            case HelpCommand:
+                                answerText = HelpMessage;
+                                break;
+                        
+                            default:
+
+                                if (senderData.CurrentExample == null)
+                                {
+                                    answerText = DefaultAnswer;
+                                }
+                                else if(message.Text.Trim() == senderData.CurrentExample.CorrectAnswer)
+                                {
+                                    answerText = "That is correct!";
+                                }
+                                else
+                                {
+                                    answerText = "That is wrong!";
+                                }
+                                
+                                break;
+                        }
                     }
                     
                     await botClient.SendTextMessageAsync(message.Chat.Id, answerText, cancellationToken: cancellationToken);
@@ -89,6 +129,24 @@ public class BotService
         }
     }
 
+    private void RegisterUserIfNeed(long userId)
+    {
+        
+        
+        using (DatabaseService database = new DatabaseService(_configurationRoot))
+        {
+            UserData foundUserData = database.UserData.FirstOrDefault(userData => userData.UserId == userId);
+
+            if (foundUserData == null)
+            {
+                database.UserData.Add(new UserData(userId));
+            }
+
+        }
+        
+    }
+
+
     private Example GetNewExample()
     {
         Example foundExample = null;
@@ -96,10 +154,7 @@ public class BotService
         using (DatabaseService database = new DatabaseService(_configurationRoot))
         {
             Random random = new Random();
-
             int examplesCount = database.Examples.Count();
-            
-            Console.WriteLine("COUNT: " + examplesCount);
             
             do
             {

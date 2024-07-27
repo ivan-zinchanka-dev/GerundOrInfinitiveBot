@@ -9,7 +9,23 @@ CREATE TABLE [Examples] (
 )
 GO
 
+CREATE TABLE [UserData] (
+	[UserId] BIGINT NOT NULL PRIMARY KEY,
+	[CurrentExampleId] INT NULL,
+
+	CONSTRAINT [FK_UserData_Examples_CurrentExampleId] FOREIGN KEY ([CurrentExampleId]) REFERENCES [Examples] ([Id])
+)
+GO
+
+
 SELECT * FROM [Examples]
+GO
+
+SELECT * FROM [UserData]
+GO
+
+INSERT INTO [UserData] ([UserId], [CurrentExampleId])
+VALUES (923067232, 0);
 GO
 
 
@@ -22,4 +38,7 @@ VALUES ('They have ... call off the wedding.', 'decide', 'decided to');
  GO
 
 DROP TABLE [Examples]
+GO
+
+DROP TABLE [UserData]
 GO
