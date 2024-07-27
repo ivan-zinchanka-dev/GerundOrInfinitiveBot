@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using GerundOrInfinitiveBot.Models;
+using Microsoft.Extensions.Configuration;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -10,6 +11,9 @@ namespace GerundOrInfinitiveBot;
 public class BotService
 {
     private const string TelegramTokenKey = "TelegramConnectionToken";
+
+    private const string TaskTextPattern = "Complete the sentence with a verb \"{0}\" in correct form.\n{1}";
+    private const string DefaultAnswer = "To get help use \"/help\" command";
     
     private const string StartCommand = "/start";
     private const string StopCommand = "/stop";
@@ -60,14 +64,21 @@ public class BotService
                     
                     Console.WriteLine($"User: {sender.FirstName} with id {sender.Id} wrote a message: {message.Text}");
 
-                    string answer = "____";
+                    string answerText = null;
                     
-                    using (DatabaseService database = new DatabaseService(_configurationRoot))
+                    switch (message.Text)
                     {
-                        answer = database.Examples.FirstOrDefault(example => example.Id == 0).Sentence;
+                        case StartCommand:
+                            Example example = GetNewExample();
+                            answerText = string.Format(TaskTextPattern, example.UsedWord, example.SourceSentence); 
+                            break;
+                        
+                        default:
+                            answerText = DefaultAnswer;
+                            break;
                     }
                     
-                    await botClient.SendTextMessageAsync(message.Chat.Id, answer, cancellationToken: cancellationToken);
+                    await botClient.SendTextMessageAsync(message.Chat.Id, answerText, cancellationToken: cancellationToken);
                     return;
                 }
             }
@@ -78,6 +89,29 @@ public class BotService
         }
     }
 
+    private Example GetNewExample()
+    {
+        Example foundExample = null;
+        
+        using (DatabaseService database = new DatabaseService(_configurationRoot))
+        {
+            Random random = new Random();
+
+            int examplesCount = database.Examples.Count();
+            
+            Console.WriteLine("COUNT: " + examplesCount);
+            
+            do
+            {
+                int randomId = random.Next(0, examplesCount);
+                foundExample = database.Examples.FirstOrDefault(example => example.Id == randomId);
+
+            } while (foundExample == null);
+        }
+        
+        return foundExample;
+    }
+    
     private Task ErrorHandler(ITelegramBotClient botClient, Exception error, CancellationToken cancellationToken)
     {
         if (error is ApiRequestException apiRequestException)
