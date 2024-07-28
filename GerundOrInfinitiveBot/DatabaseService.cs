@@ -21,6 +21,7 @@ public class DatabaseService : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.LogTo(Console.WriteLine, LogLevel.Debug);
+        optionsBuilder.EnableSensitiveDataLogging();
         optionsBuilder.UseSqlServer(_configurationRoot.GetConnectionString(SqlServerConnectionKey));
     }
 

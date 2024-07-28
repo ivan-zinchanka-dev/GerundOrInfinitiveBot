@@ -89,10 +89,7 @@ public class BotService
                         switch (message.Text)
                         {
                             case StartCommand:
-                                Example example = GetNewExample();
-                                answerText = string.Format(TaskTextPattern, example.UsedWord, example.SourceSentence);
-                                senderData.CurrentExample = example;
-                                database.SaveChanges();
+                                answerText = SetNewExampleToUser(database, senderData);
                                 break;
                         
                             case HelpCommand:
@@ -101,24 +98,32 @@ public class BotService
                         
                             default:
 
-                                if (senderData.CurrentExample == null)
+                                Example senderCurrentExample = senderData.CurrentExample;
+                                
+                                if (senderCurrentExample == null)
                                 {
                                     answerText = DefaultAnswer;
                                 }
-                                else if(message.Text.Trim() == senderData.CurrentExample.CorrectAnswer)
+                                else if(message.Text.Trim() == senderCurrentExample.CorrectAnswer)
                                 {
-                                    answerText = "That is correct!";
+                                    answerText = "That is correct! \ud83d\ude42\n"
+                                                 + $"Corrected sentence: {senderCurrentExample.GetCorrectSentence()}\n"
+                                                 + SetNewExampleToUser(database, senderData);
                                 }
                                 else
                                 {
-                                    answerText = "That is wrong!";
+                                    answerText = "That is incorrect! \ud83d\ude41\n" 
+                                                 + $"Corrected sentence: {senderCurrentExample.GetCorrectSentence()}\n"
+                                                 + SetNewExampleToUser(database, senderData);
                                 }
                                 
                                 break;
                         }
                     }
                     
-                    await botClient.SendTextMessageAsync(message.Chat.Id, answerText, cancellationToken: cancellationToken);
+                    await botClient.SendTextMessageAsync(message.Chat.Id, answerText, 
+                        cancellationToken: cancellationToken, parseMode: ParseMode.Html);
+                    
                     return;
                 }
             }
@@ -129,40 +134,28 @@ public class BotService
         }
     }
 
-    private void RegisterUserIfNeed(long userId)
+
+    private string SetNewExampleToUser(DatabaseService database, UserData userData)
     {
-        
-        
-        using (DatabaseService database = new DatabaseService(_configurationRoot))
-        {
-            UserData foundUserData = database.UserData.FirstOrDefault(userData => userData.UserId == userId);
-
-            if (foundUserData == null)
-            {
-                database.UserData.Add(new UserData(userId));
-            }
-
-        }
-        
+        Example example = GetNewExample(database);
+        userData.CurrentExample = example;
+        database.SaveChanges();
+        return string.Format(TaskTextPattern, example.UsedWord, example.SourceSentence);
     }
 
-
-    private Example GetNewExample()
+    private Example GetNewExample(DatabaseService database)
     {
         Example foundExample = null;
         
-        using (DatabaseService database = new DatabaseService(_configurationRoot))
-        {
-            Random random = new Random();
-            int examplesCount = database.Examples.Count();
+        Random random = new Random();
+        int examplesCount = database.Examples.Count();
             
-            do
-            {
-                int randomId = random.Next(0, examplesCount);
-                foundExample = database.Examples.FirstOrDefault(example => example.Id == randomId);
+        do
+        {
+            int randomId = random.Next(0, examplesCount);
+            foundExample = database.Examples.FirstOrDefault(example => example.Id == randomId);
 
-            } while (foundExample == null);
-        }
+        } while (foundExample == null);
         
         return foundExample;
     }

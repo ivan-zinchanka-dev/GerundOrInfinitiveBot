@@ -11,5 +11,11 @@ public class Example
 
     public List<UserData> CurrentUsers { get; set; }        //TODO to private set
 
-    public string GetCorrectSentence => SourceSentence.Replace(Gap, CorrectAnswer);
+    public string GetCorrectSentence() => SourceSentence.Replace(Gap, ToBold(CorrectAnswer));
+
+    private static string ToBold(string text)
+    {
+        return $"<b>{text}</b>";
+    }
+
 }
