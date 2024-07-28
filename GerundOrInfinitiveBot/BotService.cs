@@ -1,6 +1,7 @@
 ﻿using GerundOrInfinitiveBot.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -79,7 +80,6 @@ public class BotService
                         {
                             senderData = new UserData(sender.Id);
                             database.UserData.Add(senderData);
-                            database.SaveChanges();
                         }
                         else
                         {
@@ -89,7 +89,7 @@ public class BotService
                         switch (message.Text)
                         {
                             case StartCommand:
-                                answerText = SetNewExampleToUser(database, senderData);
+                                answerText = SetNewExampleToUser(database.Examples, senderData);
                                 break;
                         
                             case HelpCommand:
@@ -108,17 +108,19 @@ public class BotService
                                 {
                                     answerText = "That is correct! \ud83d\ude42\n"
                                                  + $"Corrected sentence: {senderCurrentExample.GetCorrectSentence()}\n"
-                                                 + SetNewExampleToUser(database, senderData);
+                                                 + SetNewExampleToUser(database.Examples, senderData);
                                 }
                                 else
                                 {
                                     answerText = "That is incorrect! \ud83d\ude41\n" 
                                                  + $"Corrected sentence: {senderCurrentExample.GetCorrectSentence()}\n"
-                                                 + SetNewExampleToUser(database, senderData);
+                                                 + SetNewExampleToUser(database.Examples, senderData);
                                 }
                                 
                                 break;
                         }
+                        
+                        await database.SaveChangesAsync(cancellationToken);
                     }
                     
                     await botClient.SendTextMessageAsync(message.Chat.Id, answerText, 
@@ -134,30 +136,22 @@ public class BotService
         }
     }
 
-
-    private string SetNewExampleToUser(DatabaseService database, UserData userData)
+    private static string SetNewExampleToUser(DbSet<Example> examples, UserData userData)
     {
-        Example example = GetNewExample(database);
+        Example example = GetNewExample(examples.ToList());
         userData.CurrentExample = example;
-        database.SaveChanges();
         return string.Format(TaskTextPattern, example.UsedWord, example.SourceSentence);
     }
 
-    private Example GetNewExample(DatabaseService database)
+    private static Example GetNewExample(IReadOnlyList<Example> examples)
     {
-        Example foundExample = null;
+        if (examples.IsNullOrEmpty())
+        {
+            return null;
+        }
         
         Random random = new Random();
-        int examplesCount = database.Examples.Count();
-            
-        do
-        {
-            int randomId = random.Next(0, examplesCount);
-            foundExample = database.Examples.FirstOrDefault(example => example.Id == randomId);
-
-        } while (foundExample == null);
-        
-        return foundExample;
+        return examples[random.Next(0, examples.Count)];
     }
     
     private Task ErrorHandler(ITelegramBotClient botClient, Exception error, CancellationToken cancellationToken)

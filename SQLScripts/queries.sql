@@ -30,12 +30,28 @@ GO
 
 
 INSERT INTO [Examples] ([SourceSentence], [UsedWord], [CorrectAnswer])
-VALUES ('I can''t ... go on holiday this summer.', 'afford', 'afford to');
+VALUES ('I can''t afford ... on holiday this summer.', 'go', 'to go');
 
 INSERT INTO [Examples] ([SourceSentence], [UsedWord], [CorrectAnswer])
-VALUES ('They have ... call off the wedding.', 'decide', 'decided to');
+VALUES ('They have decided ... off the wedding.', 'call', 'to call');
+
+INSERT INTO [Examples] ([SourceSentence], [UsedWord], [CorrectAnswer])
+VALUES ('I always try to avoid ... in the rush hour', 'drive', 'driving');
+
+INSERT INTO [Examples] ([SourceSentence], [UsedWord], [CorrectAnswer])
+VALUES ('It isn''t worth ... to the exhibition. It''s realy boring.', 'go', 'going');
+
+INSERT INTO [Examples] ([SourceSentence], [UsedWord], [CorrectAnswer])
+VALUES ('I have agreed ... David back the money he lent me next week.', 'pay', 'to pay');
+
 
  GO
+
+DELETE FROM [Examples]
+GO
+
+DELETE FROM [UserData]
+GO
 
 DROP TABLE [Examples]
 GO
