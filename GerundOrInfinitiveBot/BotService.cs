@@ -37,7 +37,7 @@ public class BotService
                 UpdateType.Message,
             },
            
-            ThrowPendingUpdates = true,                     // enable offline 
+            ThrowPendingUpdates = true,
         };
     }
 
@@ -67,7 +67,7 @@ public class BotService
                     
                     Console.WriteLine($"User: {sender.FirstName} with id {sender.Id} wrote a message: {message.Text}");
 
-                    string answerText = null;
+                    Queue<string> answerTexts = new Queue<string>();
                     UserData senderData;
                     
                     using (DatabaseService database = new DatabaseService(_configurationRoot))
@@ -89,11 +89,11 @@ public class BotService
                         switch (message.Text)
                         {
                             case StartCommand:
-                                answerText = SetNewExampleToUser(database.Examples, senderData);
+                                answerTexts.Enqueue(SetNewExampleToUser(database.Examples, senderData));
                                 break;
                         
                             case HelpCommand:
-                                answerText = HelpMessage;
+                                answerTexts.Enqueue(HelpMessage);
                                 break;
                         
                             default:
@@ -102,19 +102,19 @@ public class BotService
                                 
                                 if (senderCurrentExample == null)
                                 {
-                                    answerText = DefaultAnswer;
+                                    answerTexts.Enqueue(DefaultAnswer);
                                 }
                                 else if(message.Text.Trim() == senderCurrentExample.CorrectAnswer)
                                 {
-                                    answerText = "That is correct! \ud83d\ude42\n"
-                                                 + $"Corrected sentence: {senderCurrentExample.GetCorrectSentence()}\n"
-                                                 + SetNewExampleToUser(database.Examples, senderData);
+                                    answerTexts.Enqueue("That is correct! \ud83d\ude42\n" + 
+                                                        "Corrected sentence:" + senderCurrentExample.GetCorrectSentence());
+                                    answerTexts.Enqueue(SetNewExampleToUser(database.Examples, senderData));
                                 }
                                 else
                                 {
-                                    answerText = "That is incorrect! \ud83d\ude41\n" 
-                                                 + $"Corrected sentence: {senderCurrentExample.GetCorrectSentence()}\n"
-                                                 + SetNewExampleToUser(database.Examples, senderData);
+                                    answerTexts.Enqueue("That is incorrect! \ud83d\ude41\n" + 
+                                                        "Corrected sentence:" + senderCurrentExample.GetCorrectSentence());
+                                    answerTexts.Enqueue(SetNewExampleToUser(database.Examples, senderData));
                                 }
                                 
                                 break;
@@ -122,9 +122,12 @@ public class BotService
                         
                         await database.SaveChangesAsync(cancellationToken);
                     }
-                    
-                    await botClient.SendTextMessageAsync(message.Chat.Id, answerText, 
-                        cancellationToken: cancellationToken, parseMode: ParseMode.Html);
+
+                    while (answerTexts.Count != 0)
+                    {
+                        await botClient.SendTextMessageAsync(message.Chat.Id, answerTexts.Dequeue(), 
+                            cancellationToken: cancellationToken, parseMode: ParseMode.Html);
+                    }
                     
                     return;
                 }
@@ -133,6 +136,13 @@ public class BotService
         catch (Exception ex)
         {
             Console.WriteLine(ex.ToString());
+
+            if (update.Type == UpdateType.Message)
+            {
+                await botClient.SendTextMessageAsync(update.Message.Chat.Id,
+                    $"Internal error!\n<code>{ex}</code>", 
+                    cancellationToken: cancellationToken, parseMode: ParseMode.Html);
+            }
         }
     }
 

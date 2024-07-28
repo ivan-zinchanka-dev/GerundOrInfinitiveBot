@@ -17,18 +17,6 @@ namespace GerundOrInfinitiveBot {
             _botService = new BotService(config);
             
             await _botService.Start();
-
-            /*using (_databaseService = new DatabaseService(config))
-            {
-                _databaseService.Examples.Add(new Example()
-                {
-                    Sentence = "aqwe",
-                    Missing = "mis"
-                });
-
-                _databaseService.SaveChanges();
-
-            }*/
         }
     }
 }
