@@ -4,8 +4,6 @@ GO
 DELETE FROM [Examples]
 GO
 
-/*gerund*/
-
 INSERT INTO [Examples] ([SourceSentence], [UsedWord], [CorrectAnswer])
 VALUES ('In court the accused admitted (to) ... the documents', 'steal', 'stealing');
 
@@ -17,11 +15,6 @@ VALUES ('It isn''t worth ... to the exhibition. It''s really boring.', 'go', 'go
 
 INSERT INTO [Examples] ([SourceSentence], [UsedWord], [CorrectAnswer])
 VALUES ('We can''t help ... when my dad tries to speak French. His accent is awful!', 'laugh', 'laughing');
-
-GO
-
-
-/*infinitive*/
 
 INSERT INTO [Examples] ([SourceSentence], [UsedWord], [CorrectAnswer])
 VALUES ('I can''t afford ... on holiday this summer.', 'go', 'to go');
