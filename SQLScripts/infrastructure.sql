@@ -59,3 +59,5 @@ GO
 SELECT * FROM sys.tables
 GO*/
 
+EXEC sp_helpdb 'gerund_or_infinitive'
+GO
