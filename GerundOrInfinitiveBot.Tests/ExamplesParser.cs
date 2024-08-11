@@ -7,7 +7,8 @@ public class ExamplesParser
     private const string DataScriptHead= "USE gerund_or_infinitive\nGO\n\nDELETE FROM [Examples]\nGO\n\n";
     
     private const string DataRowPattern =
-        "INSERT INTO [Examples] ([SourceSentence], [UsedWord], [CorrectAnswer])\nVALUES ({0});\n\n";
+        "INSERT INTO [Examples] ([SourceSentence], [UsedWord], [CorrectAnswer], [AlternativeCorrectAnswer])\n" +
+        "VALUES ({0});\n\n";
     
     private const string DataScriptEnd = "\nGO";
     

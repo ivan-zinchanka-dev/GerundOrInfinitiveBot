@@ -6,6 +6,7 @@ CREATE TABLE [Examples] (
 	[SourceSentence] NVARCHAR(100) NOT NULL,
 	[UsedWord] NVARCHAR(30) NOT NULL,
 	[CorrectAnswer] NVARCHAR(30) NOT NULL,
+	[AlternativeCorrectAnswer] NVARCHAR(30) NULL,
 
 	CONSTRAINT [PK_Examples] PRIMARY KEY ([Id])
 )
@@ -25,7 +26,7 @@ GO
 CREATE VIEW [ShowUsagesOfExample] AS
 SELECT [Examples].Id AS [Example id], COUNT([UserData].CurrentExampleId) AS [Usages count]
 FROM [Examples]
-         LEFT JOIN [UserData] ON [UserData].CurrentExampleId = [Examples].Id
+LEFT JOIN [UserData] ON [UserData].CurrentExampleId = [Examples].Id
 GROUP BY [Examples].Id
 GO
 
@@ -44,10 +45,13 @@ INSERT INTO [UserData] ([UserId], [CurrentExampleId])
 VALUES (111369552, 3);
 GO
 
+DELETE FROM [Examples]
+GO
+
 DELETE FROM [UserData]
 GO
 
-/*DROP VIEW [ShowUsagesOfExample]
+DROP VIEW [ShowUsagesOfExample]
 GO
 
 DROP TABLE [Examples]
@@ -57,7 +61,7 @@ DROP TABLE [UserData]
 GO
 
 SELECT * FROM sys.tables
-GO*/
+GO
 
 EXEC sp_helpdb 'gerund_or_infinitive'
 GO

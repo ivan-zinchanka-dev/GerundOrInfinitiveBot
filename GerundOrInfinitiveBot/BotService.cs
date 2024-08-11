@@ -104,7 +104,7 @@ public class BotService
                                 {
                                     answerTexts.Enqueue(DefaultAnswer);
                                 }
-                                else if(message.Text.Trim() == senderCurrentExample.CorrectAnswer)
+                                else if (IsAnswerCorrect(message, senderCurrentExample))
                                 {
                                     answerTexts.Enqueue("That is correct! \ud83d\ude42\n" + 
                                                         "Corrected sentence:" + senderCurrentExample.GetCorrectSentence());
@@ -163,7 +163,18 @@ public class BotService
         Random random = new Random();
         return examples[random.Next(0, examples.Count)];
     }
-    
+
+    private static bool IsAnswerCorrect(Message answerMessage, Example example)
+    {
+        if (answerMessage == null || answerMessage.Text == null)
+        {
+            return false;
+        }
+
+        string answer = answerMessage.Text.Trim();
+        return answer == example.CorrectAnswer || answer == example.AlternativeCorrectAnswer;
+    }
+
     private Task ErrorHandler(ITelegramBotClient botClient, Exception error, CancellationToken cancellationToken)
     {
         if (error is ApiRequestException apiRequestException)

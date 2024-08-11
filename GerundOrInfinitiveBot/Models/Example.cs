@@ -7,6 +7,7 @@ public class Example
     public string SourceSentence { get; set; }
     public string UsedWord { get; set; }
     public string CorrectAnswer { get; set; }
+    public string AlternativeCorrectAnswer { get; set; }
     public SortedSet<UserData> CurrentUsers { get; private set; } = new();
 
     public string GetCorrectSentence() => SourceSentence.Replace(Gap, ToBold(CorrectAnswer));
