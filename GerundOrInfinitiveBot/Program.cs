@@ -15,7 +15,6 @@ namespace GerundOrInfinitiveBot {
             IConfigurationRoot config = configBuilder.Build();
             
             _botService = new BotService(config);
-            
             await _botService.Start();
         }
     }
