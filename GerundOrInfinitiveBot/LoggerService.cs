@@ -6,27 +6,6 @@ public class LoggerService : ILogger, IDisposable
 {
     private readonly string _fullFileName;
     private readonly object _threadLock;
-
-    public class Factory : ILoggerFactory
-    {
-        public void Dispose()
-        {
-            // TODO release managed resources here
-        }
-
-        public ILogger CreateLogger(string categoryName)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void AddProvider(ILoggerProvider provider)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-     
-    
     //public static ILoggerFactory GetFactory()
     
     public LoggerService(string fullFileName)

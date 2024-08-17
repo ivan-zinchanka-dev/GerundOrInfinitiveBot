@@ -1,4 +1,7 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using GerundOrInfinitiveBot.Settings;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace GerundOrInfinitiveBot {
     
@@ -13,8 +16,20 @@ namespace GerundOrInfinitiveBot {
             configBuilder.SetBasePath(Directory.GetCurrentDirectory());
             configBuilder.AddJsonFile(AppSettingsFileName);
             IConfigurationRoot config = configBuilder.Build();
+
+            IServiceCollection services = new ServiceCollection();
+            services.AddLogging(builder =>
+            {
+                builder.AddConsole();
+            });
+
+            services.AddOptions();
+            services.Configure<BotConnectionSettings>(config.GetSection("ConnectionStrings"));
+            services.AddSingleton<BotService>();
             
-            _botService = new BotService(config);
+            IServiceProvider serviceProvider = services.BuildServiceProvider();
+            
+            _botService = serviceProvider.GetRequiredService<BotService>();
             await _botService.Start();
         }
     }

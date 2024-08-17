@@ -1,28 +1,26 @@
-﻿using GerundOrInfinitiveBot.Models;
+﻿using GerundOrInfinitiveBot.DataBaseObjects;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace GerundOrInfinitiveBot;
 
 public class DatabaseService : DbContext
 {
-    private const string SqlServerConnectionKey = "SqlServerConnection";
-    
-    private readonly IConfigurationRoot _configurationRoot;
+    private readonly string _connectionString;
+
     public DbSet<Example> Examples { get; private set; }
     public DbSet<UserData> UserData { get; private set; }
     
-    public DatabaseService(IConfigurationRoot configurationRoot)
+    public DatabaseService(string connectionString)
     {
-        _configurationRoot = configurationRoot;
+        _connectionString = connectionString;
     }
     
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.LogTo(Console.WriteLine, LogLevel.Debug);
         optionsBuilder.EnableSensitiveDataLogging();
-        optionsBuilder.UseSqlServer(_configurationRoot.GetConnectionString(SqlServerConnectionKey));
+        optionsBuilder.UseSqlServer(_connectionString);
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -20,7 +20,7 @@ public class ServiceTests
     [Test]
     public async Task ReportTestException()
     {
-        Exception testException = new Exception();
+        var testException = new Exception();
         
         try
         {
@@ -33,9 +33,9 @@ public class ServiceTests
             testException = ex;
         }
 
-        await new ReportService(_configurationRoot).ReportException(testException);
-
+        var reportService = new ReportService(_configurationRoot);
+        bool sendingResult = await reportService.ReportException(testException);
+        Assert.IsTrue(sendingResult);
     }
-
-
+    
 }

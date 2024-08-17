@@ -1,4 +1,4 @@
-﻿namespace GerundOrInfinitiveBot.Models;
+﻿namespace GerundOrInfinitiveBot.DataBaseObjects;
 
 public class Example
 {

@@ -1,6 +1,8 @@
-﻿using GerundOrInfinitiveBot.Models;
+﻿using GerundOrInfinitiveBot.DataBaseObjects;
+using GerundOrInfinitiveBot.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -21,15 +23,15 @@ public class BotService
     private const string StartCommand = "/start";
     private const string HelpCommand = "/help";
 
-    private readonly IConfigurationRoot _configurationRoot; 
+    private readonly IOptions<BotConnectionSettings> _options; 
     private readonly ITelegramBotClient _botClient;
     private readonly ReceiverOptions _receiverOptions;
     
-    public BotService(IConfigurationRoot configurationRoot)
+    public BotService(IOptions<BotConnectionSettings> options)
     {
-        _configurationRoot = configurationRoot;
+        _options = options;
         
-        _botClient = new TelegramBotClient(_configurationRoot.GetConnectionString(TelegramTokenKey));
+        _botClient = new TelegramBotClient(_options.Value.TelegramConnectionToken);
         _receiverOptions = new ReceiverOptions
         {
             AllowedUpdates = new[]
@@ -70,7 +72,7 @@ public class BotService
                     Queue<string> answerTexts = new Queue<string>();
                     UserData senderData;
                     
-                    using (DatabaseService database = new DatabaseService(_configurationRoot))
+                    using (DatabaseService database = new DatabaseService(_options.Value.SqlServerConnection))
                     {
                         UserData foundUserData = database.UserData
                             .Include(userData => userData.CurrentExample)
