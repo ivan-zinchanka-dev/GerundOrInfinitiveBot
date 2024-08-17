@@ -25,6 +25,8 @@ namespace GerundOrInfinitiveBot {
 
             services.AddOptions();
             services.Configure<BotConnectionSettings>(config.GetSection("ConnectionStrings"));
+            services.Configure<EmailSettings>(config.GetSection("EmailSettings"));
+            services.AddTransient<ReportService>();
             services.AddSingleton<BotService>();
             
             IServiceProvider serviceProvider = services.BuildServiceProvider();

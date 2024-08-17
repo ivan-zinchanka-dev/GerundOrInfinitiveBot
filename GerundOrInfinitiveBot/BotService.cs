@@ -1,7 +1,6 @@
 ﻿using GerundOrInfinitiveBot.DataBaseObjects;
 using GerundOrInfinitiveBot.Settings;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Telegram.Bot;
@@ -14,8 +13,6 @@ namespace GerundOrInfinitiveBot;
 
 public class BotService
 {
-    private const string TelegramTokenKey = "TelegramConnectionToken";
-
     private const string TaskTextPattern = "Complete the sentence with a verb \"{0}\" in correct form.\n{1}";
     private const string DefaultAnswer = "To get help use \"/help\" command";
     private const string HelpMessage = "[HelpMessage]";

@@ -1,4 +1,8 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using GerundOrInfinitiveBot.Settings;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace GerundOrInfinitiveBot.Tests;
 
@@ -6,15 +10,17 @@ namespace GerundOrInfinitiveBot.Tests;
 public class ServiceTests
 {
     private const string AppSettingsFileName = "appsettings.test.json";
-    private IConfigurationRoot _configurationRoot;
+    private EmailSettings _emailSettings;
     
     [SetUp]
     public void Configure()
     {
         ConfigurationBuilder configBuilder = new ConfigurationBuilder();
         configBuilder.SetBasePath(Directory.GetCurrentDirectory());
-        configBuilder.AddJsonFile(AppSettingsFileName);
-        _configurationRoot = configBuilder.Build();
+        configBuilder.AddJsonFile(AppSettingsFileName, false, true);
+        IConfigurationRoot configurationRoot = configBuilder.Build();
+        
+        _emailSettings = configurationRoot.GetSection("EmailSettings").Get<EmailSettings>();
     }
 
     [Test]
@@ -33,7 +39,7 @@ public class ServiceTests
             testException = ex;
         }
 
-        var reportService = new ReportService(_configurationRoot);
+        var reportService = new ReportService(Options.Create<EmailSettings>(_emailSettings));
         bool sendingResult = await reportService.ReportException(testException);
         Assert.IsTrue(sendingResult);
     }
