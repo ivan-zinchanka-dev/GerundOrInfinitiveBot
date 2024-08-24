@@ -1,4 +1,5 @@
-﻿using GerundOrInfinitiveBot.Settings;
+﻿using GerundOrInfinitiveBot.Services.FileLogging;
+using GerundOrInfinitiveBot.Settings;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -20,9 +21,13 @@ namespace GerundOrInfinitiveBot {
             IServiceCollection services = new ServiceCollection();
             services.AddLogging(builder =>
             {
-                builder.AddConsole();
+                builder
+                    .AddConsole()
+                    .AddFile(Path.Combine(Environment.CurrentDirectory, "app.logs"));
             });
 
+            string a = Path.Combine(Environment.CurrentDirectory, "app.logs");
+            
             services.AddOptions();
             services.Configure<BotConnectionSettings>(config.GetSection("ConnectionStrings"));
             services.Configure<EmailSettings>(config.GetSection("EmailSettings"));

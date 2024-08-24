@@ -53,8 +53,8 @@ public class BotService
             _botClient.StartReceiving(UpdateHandler, ErrorHandler, _receiverOptions, cts.Token);
         
             User me = await _botClient.GetMeAsync(cancellationToken: cts.Token);
-            Console.WriteLine($"{me.FirstName} is launched");
-        
+            _logger.LogInformation($"{me.FirstName} is launched");
+            
             await Task.Delay(-1, cts.Token);
         }
     }
@@ -71,7 +71,7 @@ public class BotService
                     User sender = message.From;
                     
                     _logger.LogInformation(
-                        $"User: {sender.FirstName} with id {sender.Id} sent a message: {message.Text}");
+                        $"User {sender.FirstName} with id {sender.Id} sent a message: {message.Text}");
                     
                     Queue<string> answerTexts = new Queue<string>();
 
@@ -113,13 +113,13 @@ public class BotService
                                 else if (IsAnswerCorrect(message, senderCurrentExample))
                                 {
                                     answerTexts.Enqueue("That is correct! \ud83d\ude42\n" + 
-                                                        "Corrected sentence:" + senderCurrentExample.GetCorrectSentence());
+                                                        "Corrected sentence: " + senderCurrentExample.GetCorrectSentence());
                                     answerTexts.Enqueue(SetNewExampleToUser(database.Examples, senderData));
                                 }
                                 else
                                 {
                                     answerTexts.Enqueue("That is incorrect! \ud83d\ude41\n" + 
-                                                        "Corrected sentence:" + senderCurrentExample.GetCorrectSentence());
+                                                        "Corrected sentence: " + senderCurrentExample.GetCorrectSentence());
                                     answerTexts.Enqueue(SetNewExampleToUser(database.Examples, senderData));
                                 }
                                 
@@ -137,7 +137,7 @@ public class BotService
                             cancellationToken: cancellationToken, parseMode: ParseMode.Html);
                         
                         _logger.LogInformation(
-                            $"User: {sender.FirstName} with id {sender.Id} was sent a response: {answerText}");
+                            $"User {sender.FirstName} with id {sender.Id} was sent a response: {answerText}");
                     }
                     
                     return;
@@ -194,11 +194,11 @@ public class BotService
     {
         if (error is ApiRequestException apiRequestException)
         {
-            Console.WriteLine($"Telegram API Error:\n[{apiRequestException.ErrorCode}]\n{apiRequestException.Message}");
+            _logger.LogError($"Telegram API Error:\n[{apiRequestException.ErrorCode}]\n{apiRequestException.Message}");
         }
         else
         {
-            Console.WriteLine(error.ToString());
+            _logger.LogError($"Error:\n{error}");
         }
         
         return Task.CompletedTask;

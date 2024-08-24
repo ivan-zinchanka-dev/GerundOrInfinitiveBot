@@ -1,14 +1,13 @@
 ﻿using Microsoft.Extensions.Logging;
 
-namespace GerundOrInfinitiveBot;
+namespace GerundOrInfinitiveBot.Services.FileLogging;
 
-public class LoggerService : ILogger, IDisposable
+public class FileLogger : ILogger, IDisposable
 {
     private readonly string _fullFileName;
     private readonly object _threadLock;
-    //public static ILoggerFactory GetFactory()
     
-    public LoggerService(string fullFileName)
+    public FileLogger(string fullFileName)
     {
         _fullFileName = fullFileName;
         _threadLock = new object();
