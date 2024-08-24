@@ -1,6 +1,7 @@
 ﻿using GerundOrInfinitiveBot.DataBaseObjects;
 using GerundOrInfinitiveBot.Settings;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Telegram.Bot;
@@ -22,13 +23,16 @@ public class BotService
 
     private readonly IOptions<BotConnectionSettings> _options;
     private readonly ReportService _reportService;
+    private readonly ILogger<BotService> _logger;
+    
     private readonly ITelegramBotClient _botClient;
     private readonly ReceiverOptions _receiverOptions;
     
-    public BotService(IOptions<BotConnectionSettings> options, ReportService reportService)
+    public BotService(IOptions<BotConnectionSettings> options, ReportService reportService, ILogger<BotService> logger)
     {
         _options = options;
         _reportService = reportService;
+        _logger = logger;
         
         _botClient = new TelegramBotClient(_options.Value.TelegramConnectionToken);
         _receiverOptions = new ReceiverOptions
@@ -66,17 +70,18 @@ public class BotService
                     Message message = update.Message;
                     User sender = message.From;
                     
-                    Console.WriteLine($"User: {sender.FirstName} with id {sender.Id} wrote a message: {message.Text}");
-
-                    Queue<string> answerTexts = new Queue<string>();
-                    UserData senderData;
+                    _logger.LogInformation(
+                        $"User: {sender.FirstName} with id {sender.Id} sent a message: {message.Text}");
                     
+                    Queue<string> answerTexts = new Queue<string>();
+
                     using (DatabaseService database = new DatabaseService(_options.Value.SqlServerConnection))
                     {
                         UserData foundUserData = database.UserData
                             .Include(userData => userData.CurrentExample)
                             .FirstOrDefault(userData => userData.UserId == sender.Id);
 
+                        UserData senderData;
                         if (foundUserData == null)
                         {
                             senderData = new UserData(sender.Id);
@@ -123,11 +128,16 @@ public class BotService
                         
                         await database.SaveChangesAsync(cancellationToken);
                     }
-
+                    
                     while (answerTexts.Count != 0)
                     {
-                        await botClient.SendTextMessageAsync(message.Chat.Id, answerTexts.Dequeue(), 
+                        string answerText = answerTexts.Dequeue();
+                        
+                        await botClient.SendTextMessageAsync(message.Chat.Id, answerText, 
                             cancellationToken: cancellationToken, parseMode: ParseMode.Html);
+                        
+                        _logger.LogInformation(
+                            $"User: {sender.FirstName} with id {sender.Id} was sent a response: {answerText}");
                     }
                     
                     return;
@@ -136,7 +146,8 @@ public class BotService
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.ToString());
+            _logger.LogError($"Internal error!\n{ex}");
+        
             await _reportService.ReportExceptionAsync(ex);
             
             if (update.Type == UpdateType.Message)
