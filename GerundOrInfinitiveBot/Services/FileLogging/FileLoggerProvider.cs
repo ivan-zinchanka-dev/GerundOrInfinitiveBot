@@ -13,7 +13,7 @@ public class FileLoggerProvider : ILoggerProvider
 
     public ILogger CreateLogger(string categoryName)
     {
-        return new FileLogger(_fullFileName);
+        return new FileLogger(_fullFileName, categoryName);
     }
     
     public void Dispose() { }

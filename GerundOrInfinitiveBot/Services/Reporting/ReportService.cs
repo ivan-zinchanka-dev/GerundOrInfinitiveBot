@@ -15,6 +15,8 @@ public class ReportService
     {
         _options = options;
         _logger = logger;
+        
+        _logger.LogInformation("Report service initialized");
     }
 
     public async Task<bool> ReportExceptionAsync(Exception exception)

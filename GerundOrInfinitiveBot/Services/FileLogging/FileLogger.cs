@@ -5,11 +5,13 @@ namespace GerundOrInfinitiveBot.Services.FileLogging;
 public class FileLogger : ILogger, IDisposable
 {
     private readonly string _fullFileName;
+    private readonly string _categoryName;
     private readonly object _threadLock;
     
-    public FileLogger(string fullFileName)
+    public FileLogger(string fullFileName, string categoryName = null)
     {
         _fullFileName = fullFileName;
+        _categoryName = categoryName;
         _threadLock = new object();
     }
     
@@ -22,8 +24,9 @@ public class FileLogger : ILogger, IDisposable
             {
                 File.Create(_fullFileName);
             }
-                
-            File.AppendAllTextAsync(_fullFileName,
+
+            File.AppendAllTextAsync(_fullFileName, _categoryName != null ? 
+                $"[{DateTime.Now}] <{_categoryName}> {GetLogPrefix(logLevel)}: {formatter(state, exception)}\n" : 
                 $"[{DateTime.Now}] {GetLogPrefix(logLevel)}: {formatter(state, exception)}\n");
         }
     }
