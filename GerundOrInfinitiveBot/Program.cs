@@ -32,7 +32,7 @@ namespace GerundOrInfinitiveBot {
             });
             
             services.AddOptions();
-            services.Configure<BotConnectionSettings>(config.GetSection("ConnectionStrings"));
+            services.Configure<ConnectionSettings>(config.GetSection("ConnectionStrings"));
             services.Configure<EmailSettings>(config.GetSection("EmailSettings"));
             services.AddDbContextFactory<DatabaseService>(lifetime: ServiceLifetime.Singleton);
             services.AddTransient<ReportService>();

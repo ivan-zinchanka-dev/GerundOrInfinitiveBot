@@ -14,7 +14,7 @@ public class DatabaseService : DbContext
     public DbSet<Example> Examples { get; private set; }
     public DbSet<UserData> UserData { get; private set; }
     
-    public DatabaseService(IOptions<BotConnectionSettings> options)
+    public DatabaseService(IOptions<ConnectionSettings> options)
     {
         _connectionString = options.Value.SqlServerConnection;
         //_logger = logger;

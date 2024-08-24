@@ -23,7 +23,7 @@ public class BotService
     private const string StartCommand = "/start";
     private const string HelpCommand = "/help";
 
-    private readonly IOptions<BotConnectionSettings> _options;
+    private readonly IOptions<ConnectionSettings> _options;
     private readonly ReportService _reportService;
     private readonly IDbContextFactory<DatabaseService> _databaseServiceFactory;
     private readonly ILogger<BotService> _logger;
@@ -31,7 +31,7 @@ public class BotService
     private readonly ITelegramBotClient _botClient;
     private readonly ReceiverOptions _receiverOptions;
     
-    public BotService(IOptions<BotConnectionSettings> options, ReportService reportService, 
+    public BotService(IOptions<ConnectionSettings> options, ReportService reportService, 
         IDbContextFactory<DatabaseService> databaseServiceFactory, ILogger<BotService> logger)
     {
         _options = options;
