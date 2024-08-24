@@ -14,7 +14,7 @@ public class ReportService
         _options = options;
     }
 
-    public async Task<bool> ReportException(Exception exception)
+    public async Task<bool> ReportExceptionAsync(Exception exception)
     {
         EmailSettings emailSettings = _options.Value;
         

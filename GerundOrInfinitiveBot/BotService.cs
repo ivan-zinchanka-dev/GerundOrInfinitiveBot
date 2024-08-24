@@ -20,13 +20,15 @@ public class BotService
     private const string StartCommand = "/start";
     private const string HelpCommand = "/help";
 
-    private readonly IOptions<BotConnectionSettings> _options; 
+    private readonly IOptions<BotConnectionSettings> _options;
+    private readonly ReportService _reportService;
     private readonly ITelegramBotClient _botClient;
     private readonly ReceiverOptions _receiverOptions;
     
-    public BotService(IOptions<BotConnectionSettings> options)
+    public BotService(IOptions<BotConnectionSettings> options, ReportService reportService)
     {
         _options = options;
+        _reportService = reportService;
         
         _botClient = new TelegramBotClient(_options.Value.TelegramConnectionToken);
         _receiverOptions = new ReceiverOptions
@@ -135,7 +137,8 @@ public class BotService
         catch (Exception ex)
         {
             Console.WriteLine(ex.ToString());
-
+            await _reportService.ReportExceptionAsync(ex);
+            
             if (update.Type == UpdateType.Message)
             {
                 await botClient.SendTextMessageAsync(update.Message.Chat.Id,
@@ -171,7 +174,9 @@ public class BotService
         }
 
         string answer = answerMessage.Text.Trim();
-        return answer == example.CorrectAnswer || answer == example.AlternativeCorrectAnswer;
+
+        return string.Equals(answer, example.CorrectAnswer, StringComparison.OrdinalIgnoreCase) || 
+               string.Equals(answer, example.AlternativeCorrectAnswer, StringComparison.OrdinalIgnoreCase);
     }
 
     private Task ErrorHandler(ITelegramBotClient botClient, Exception error, CancellationToken cancellationToken)

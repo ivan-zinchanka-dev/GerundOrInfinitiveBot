@@ -40,7 +40,7 @@ public class ServiceTests
         }
 
         var reportService = new ReportService(Options.Create<EmailSettings>(_emailSettings));
-        bool sendingResult = await reportService.ReportException(testException);
+        bool sendingResult = await reportService.ReportExceptionAsync(testException);
         Assert.IsTrue(sendingResult);
     }
     
