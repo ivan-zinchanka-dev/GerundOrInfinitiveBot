@@ -12,8 +12,6 @@ namespace GerundOrInfinitiveBot {
     internal class Program
     {
         private const string AppSettingsFileName = "appsettings.json";
-        private const string AppLogsFileName = "applogs.log";
-        
         private static BotService _botService;
         
         private static async Task Main(string[] args)
@@ -28,12 +26,14 @@ namespace GerundOrInfinitiveBot {
             {
                 builder
                     .AddConsole()
-                    .AddFile(Path.Combine(Environment.CurrentDirectory, AppLogsFileName));
+                    .AddFile(Path.Combine(Environment.CurrentDirectory, config.GetValue<string>("LogsFileName")));
             });
             
             services.AddOptions();
             services.Configure<ConnectionSettings>(config.GetSection("ConnectionStrings"));
             services.Configure<EmailSettings>(config.GetSection("EmailSettings"));
+            services.Configure<BotSettings>(config.GetSection("BotSettings"));
+            
             services.AddDbContextFactory<DatabaseService>(lifetime: ServiceLifetime.Singleton);
             services.AddTransient<ReportService>();
             services.AddSingleton<BotService>();

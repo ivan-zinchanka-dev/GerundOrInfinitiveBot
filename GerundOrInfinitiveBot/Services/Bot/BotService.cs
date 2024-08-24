@@ -16,14 +16,11 @@ namespace GerundOrInfinitiveBot.Services.Bot;
 
 public class BotService
 {
-    private const string TaskTextPattern = "Complete the sentence with a verb \"{0}\" in correct form.\n{1}";
-    private const string DefaultAnswer = "To get help use \"/help\" command";
-    private const string HelpMessage = "[HelpMessage]";
-    
     private const string StartCommand = "/start";
     private const string HelpCommand = "/help";
 
-    private readonly IOptions<ConnectionSettings> _options;
+    private readonly IOptions<ConnectionSettings> _connectionOptions;
+    private readonly IOptions<BotSettings> _botOptions;
     private readonly ReportService _reportService;
     private readonly IDbContextFactory<DatabaseService> _databaseServiceFactory;
     private readonly ILogger<BotService> _logger;
@@ -31,15 +28,17 @@ public class BotService
     private readonly ITelegramBotClient _botClient;
     private readonly ReceiverOptions _receiverOptions;
     
-    public BotService(IOptions<ConnectionSettings> options, ReportService reportService, 
-        IDbContextFactory<DatabaseService> databaseServiceFactory, ILogger<BotService> logger)
+    public BotService(IOptions<ConnectionSettings> connectionOptions, IOptions<BotSettings> botOptions, 
+        ReportService reportService, IDbContextFactory<DatabaseService> databaseServiceFactory, 
+        ILogger<BotService> logger)
     {
-        _options = options;
+        _connectionOptions = connectionOptions;
+        _botOptions = botOptions;
         _reportService = reportService;
         _databaseServiceFactory = databaseServiceFactory;
         _logger = logger;
         
-        _botClient = new TelegramBotClient(_options.Value.TelegramConnectionToken);
+        _botClient = new TelegramBotClient(_connectionOptions.Value.TelegramConnectionToken);
         _receiverOptions = new ReceiverOptions
         {
             AllowedUpdates = new[]
@@ -104,7 +103,7 @@ public class BotService
                                 break;
                         
                             case HelpCommand:
-                                answerTexts.Enqueue(HelpMessage);
+                                answerTexts.Enqueue(_botOptions.Value.HelpMessage);
                                 break;
                         
                             default:
@@ -113,7 +112,7 @@ public class BotService
                                 
                                 if (senderCurrentExample == null)
                                 {
-                                    answerTexts.Enqueue(DefaultAnswer);
+                                    answerTexts.Enqueue(_botOptions.Value.DefaultAnswer);
                                 }
                                 else if (IsAnswerCorrect(message, senderCurrentExample))
                                 {
@@ -164,11 +163,11 @@ public class BotService
         }
     }
 
-    private static string SetNewExampleToUser(DbSet<Example> examples, UserData userData)
+    private string SetNewExampleToUser(DbSet<Example> examples, UserData userData)
     {
         Example example = GetNewExample(examples.ToList());
         userData.CurrentExample = example;
-        return string.Format(TaskTextPattern, example.UsedWord, example.SourceSentence);
+        return string.Format(_botOptions.Value.TaskTextPattern, example.UsedWord, example.SourceSentence);
     }
 
     private static Example GetNewExample(IReadOnlyList<Example> examples)
