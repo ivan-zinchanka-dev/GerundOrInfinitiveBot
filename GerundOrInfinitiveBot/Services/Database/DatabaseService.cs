@@ -1,6 +1,7 @@
 ﻿using GerundOrInfinitiveBot.DataBaseObjects;
 using GerundOrInfinitiveBot.Settings;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -8,25 +9,25 @@ namespace GerundOrInfinitiveBot.Services.Database;
 
 public class DatabaseService : DbContext
 {
-    private readonly string _connectionString;
-    private readonly ILogger _logger;
+    private readonly IOptions<ConnectionSettings> _options;
+    private readonly ILogger<DatabaseService> _logger;
 
     public DbSet<Example> Examples { get; private set; }
     public DbSet<UserData> UserData { get; private set; }
     
-    public DatabaseService(IOptions<ConnectionSettings> options)
+    public DatabaseService(IOptions<ConnectionSettings> options, ILogger<DatabaseService> logger)
     {
-        _connectionString = options.Value.SqlServerConnection;
-        //_logger = logger;
+        _options = options;
+        _logger = logger;
     }
     
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.LogTo(Console.WriteLine, LogLevel.Debug);
-        optionsBuilder.EnableSensitiveDataLogging();
-        optionsBuilder.UseSqlServer(_connectionString);
+        optionsBuilder.LogTo(OnLogFilter, OnLogAction);
+        //optionsBuilder.EnableSensitiveDataLogging();
+        optionsBuilder.UseSqlServer(_options.Value.SqlServerConnection);
     }
-
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Example>()
@@ -39,5 +40,15 @@ public class DatabaseService : DbContext
             .HasOne(user => user.CurrentExample)
             .WithMany(example => example.CurrentUsers)
             .HasForeignKey(user => user.CurrentExampleId);
+    }
+
+    private static bool OnLogFilter(EventId eventId, LogLevel logLevel)
+    {
+        return (int) logLevel >= (int) LogLevel.Information;
+    }
+    
+    private void OnLogAction(EventData eventData)
+    {
+        _logger.Log(eventData.LogLevel, eventData.EventId, eventData.ToString());
     }
 }
