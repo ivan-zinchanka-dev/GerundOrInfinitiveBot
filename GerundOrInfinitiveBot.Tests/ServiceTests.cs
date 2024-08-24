@@ -1,7 +1,7 @@
-﻿using GerundOrInfinitiveBot.Settings;
+﻿using GerundOrInfinitiveBot.Services.Reporting;
+using GerundOrInfinitiveBot.Settings;
+using GerundOrInfinitiveBot.Tests.Services.Logging;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace GerundOrInfinitiveBot.Tests;
@@ -39,7 +39,9 @@ public class ServiceTests
             testException = ex;
         }
 
-        var reportService = new ReportService(Options.Create<EmailSettings>(_emailSettings));
+        var testReportLogger = new TestLogger<ReportService>();
+        
+        var reportService = new ReportService(Options.Create<EmailSettings>(_emailSettings), testReportLogger);
         bool sendingResult = await reportService.ReportExceptionAsync(testException);
         Assert.IsTrue(sendingResult);
     }

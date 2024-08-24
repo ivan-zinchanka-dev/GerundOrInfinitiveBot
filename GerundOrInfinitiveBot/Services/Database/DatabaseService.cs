@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace GerundOrInfinitiveBot;
+namespace GerundOrInfinitiveBot.Services.Database;
 
 public class DatabaseService : DbContext
 {

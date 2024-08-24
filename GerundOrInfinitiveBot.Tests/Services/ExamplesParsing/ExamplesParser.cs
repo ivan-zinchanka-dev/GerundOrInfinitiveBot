@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace GerundOrInfinitiveBot.Tests;
+namespace GerundOrInfinitiveBot.Tests.Services.ExamplesParsing;
 
 public class ExamplesParser
 {

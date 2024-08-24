@@ -1,4 +1,4 @@
-﻿namespace GerundOrInfinitiveBot.Tests;
+﻿namespace GerundOrInfinitiveBot.Tests.Services.ExamplesParsing;
 
 [TestFixture]
 public class ExamplesParserTest

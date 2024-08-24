@@ -1,4 +1,6 @@
-﻿using GerundOrInfinitiveBot.Services.FileLogging;
+﻿using GerundOrInfinitiveBot.Services.Bot;
+using GerundOrInfinitiveBot.Services.FileLogging;
+using GerundOrInfinitiveBot.Services.Reporting;
 using GerundOrInfinitiveBot.Settings;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,6 +11,8 @@ namespace GerundOrInfinitiveBot {
     internal class Program
     {
         private const string AppSettingsFileName = "appsettings.json";
+        private const string AppLogsFileName = "applogs.log";
+        
         private static BotService _botService;
         
         private static async Task Main(string[] args)
@@ -23,10 +27,8 @@ namespace GerundOrInfinitiveBot {
             {
                 builder
                     .AddConsole()
-                    .AddFile(Path.Combine(Environment.CurrentDirectory, "app.logs"));
+                    .AddFile(Path.Combine(Environment.CurrentDirectory, AppLogsFileName));
             });
-
-            string a = Path.Combine(Environment.CurrentDirectory, "app.logs");
             
             services.AddOptions();
             services.Configure<BotConnectionSettings>(config.GetSection("ConnectionStrings"));

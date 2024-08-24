@@ -1,4 +1,6 @@
 ﻿using GerundOrInfinitiveBot.DataBaseObjects;
+using GerundOrInfinitiveBot.Services.Database;
+using GerundOrInfinitiveBot.Services.Reporting;
 using GerundOrInfinitiveBot.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -10,7 +12,7 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
-namespace GerundOrInfinitiveBot;
+namespace GerundOrInfinitiveBot.Services.Bot;
 
 public class BotService
 {
