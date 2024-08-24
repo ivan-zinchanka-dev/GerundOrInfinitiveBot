@@ -1,19 +1,23 @@
 ﻿using GerundOrInfinitiveBot.DataBaseObjects;
+using GerundOrInfinitiveBot.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace GerundOrInfinitiveBot.Services.Database;
 
 public class DatabaseService : DbContext
 {
     private readonly string _connectionString;
+    private readonly ILogger _logger;
 
     public DbSet<Example> Examples { get; private set; }
     public DbSet<UserData> UserData { get; private set; }
     
-    public DatabaseService(string connectionString)
+    public DatabaseService(IOptions<BotConnectionSettings> options)
     {
-        _connectionString = connectionString;
+        _connectionString = options.Value.SqlServerConnection;
+        //_logger = logger;
     }
     
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

@@ -25,15 +25,18 @@ public class BotService
 
     private readonly IOptions<BotConnectionSettings> _options;
     private readonly ReportService _reportService;
+    private readonly IDbContextFactory<DatabaseService> _databaseServiceFactory;
     private readonly ILogger<BotService> _logger;
     
     private readonly ITelegramBotClient _botClient;
     private readonly ReceiverOptions _receiverOptions;
     
-    public BotService(IOptions<BotConnectionSettings> options, ReportService reportService, ILogger<BotService> logger)
+    public BotService(IOptions<BotConnectionSettings> options, ReportService reportService, 
+        IDbContextFactory<DatabaseService> databaseServiceFactory, ILogger<BotService> logger)
     {
         _options = options;
         _reportService = reportService;
+        _databaseServiceFactory = databaseServiceFactory;
         _logger = logger;
         
         _botClient = new TelegramBotClient(_options.Value.TelegramConnectionToken);
@@ -76,8 +79,8 @@ public class BotService
                         $"User {sender.FirstName} with id {sender.Id} sent a message: {message.Text}");
                     
                     Queue<string> answerTexts = new Queue<string>();
-
-                    using (DatabaseService database = new DatabaseService(_options.Value.SqlServerConnection))
+                    
+                    using (DatabaseService database = await _databaseServiceFactory.CreateDbContextAsync(cancellationToken))
                     {
                         UserData foundUserData = database.UserData
                             .Include(userData => userData.CurrentExample)

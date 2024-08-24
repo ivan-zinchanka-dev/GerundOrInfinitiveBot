@@ -1,4 +1,5 @@
 ﻿using GerundOrInfinitiveBot.Services.Bot;
+using GerundOrInfinitiveBot.Services.Database;
 using GerundOrInfinitiveBot.Services.FileLogging;
 using GerundOrInfinitiveBot.Services.Reporting;
 using GerundOrInfinitiveBot.Settings;
@@ -33,6 +34,7 @@ namespace GerundOrInfinitiveBot {
             services.AddOptions();
             services.Configure<BotConnectionSettings>(config.GetSection("ConnectionStrings"));
             services.Configure<EmailSettings>(config.GetSection("EmailSettings"));
+            services.AddDbContextFactory<DatabaseService>(lifetime: ServiceLifetime.Singleton);
             services.AddTransient<ReportService>();
             services.AddSingleton<BotService>();
             
