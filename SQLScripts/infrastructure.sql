@@ -23,6 +23,10 @@ CREATE TABLE [UserData] (
 )
 GO
 
+ALTER TABLE [UserData]
+ADD [ExampleImpressionsJson] VARCHAR(MAX) DEFAULT('') NOT NULL
+GO
+
 CREATE VIEW [ShowUsagesOfExample] AS
 SELECT [Examples].Id AS [Example id], COUNT([UserData].CurrentExampleId) AS [Usages count]
 FROM [Examples]
@@ -33,6 +37,11 @@ GO
 SELECT * FROM [Examples]
 GO
 
+SELECT COUNT(*)
+FROM [Examples]
+GO
+
+
 SELECT * FROM [UserData]
 GO
 
@@ -42,7 +51,7 @@ GO
 
 
 INSERT INTO [UserData] ([UserId], [CurrentExampleId])
-VALUES (111369552, 3);
+VALUES (111369552, 30);
 GO
 
 DELETE FROM [Examples]

@@ -32,14 +32,21 @@ public class DatabaseService : DbContext
     {
         modelBuilder.Entity<Example>()
             .HasKey(example => example.Id);
+
+        modelBuilder.Entity<UserData>(userData =>
+        {
+            userData
+                .HasKey(user => user.UserId);
         
-        modelBuilder.Entity<UserData>()
-            .HasKey(user=>user.UserId);
+            userData
+                .Property(user => user.ExampleImpressionsJson)
+                .IsRequired();
             
-        modelBuilder.Entity<UserData>()
-            .HasOne(user => user.CurrentExample)
-            .WithMany(example => example.CurrentUsers)
-            .HasForeignKey(user => user.CurrentExampleId);
+            userData
+                .HasOne(user => user.CurrentExample)
+                .WithMany(example => example.CurrentUsers)
+                .HasForeignKey(user => user.CurrentExampleId);
+        });
     }
 
     private static bool OnLogFilter(EventId eventId, LogLevel logLevel)

@@ -1,4 +1,6 @@
-﻿using GerundOrInfinitiveBot.DataBaseObjects;
+﻿using System.Text.Json;
+using GerundOrInfinitiveBot.DataBaseObjects;
+using GerundOrInfinitiveBot.Models;
 using GerundOrInfinitiveBot.Services.Database;
 using GerundOrInfinitiveBot.Services.Reporting;
 using GerundOrInfinitiveBot.Settings;
@@ -165,21 +167,68 @@ public class BotService
 
     private string SetNewExampleToUser(DbSet<Example> examples, UserData userData)
     {
-        Example example = GetNewExample(examples.ToList());
+        List<ExampleImpressionRecord> exampleImpressionRecords = new List<ExampleImpressionRecord>();
+        
+        if (!string.IsNullOrWhiteSpace(userData.ExampleImpressionsJson))
+        {
+            exampleImpressionRecords = 
+                JsonSerializer.Deserialize<List<ExampleImpressionRecord>>(userData.ExampleImpressionsJson) ?? 
+                new List<ExampleImpressionRecord>();
+        }
+        
+        ImpressionService impressionService = new ImpressionService(exampleImpressionRecords);
+        Example example = SelectNewExample(examples.ToList(), impressionService);
+        impressionService.AppendExampleImpression(example.Id);
+        
         userData.CurrentExample = example;
+        userData.ExampleImpressionsJson = JsonSerializer.Serialize(impressionService.ExampleImpressionRecords);
+        
         return string.Format(_botOptions.Value.TaskTextPattern, example.UsedWord, example.SourceSentence);
     }
 
-    private static Example GetNewExample(IReadOnlyList<Example> examples)
+    private static Example SelectNewExample(List<Example> examples, ImpressionService impressionService)
     {
         if (examples.IsNullOrEmpty())
         {
             return null;
         }
         
+        IEnumerable<int> recordedExampleIds = impressionService.ExampleImpressionRecords.Select(record => record.ExampleId);
+        List<Example> zeroImpressionExamples = examples.Where(example => !recordedExampleIds.Contains(example.Id)).ToList();
+
         Random random = new Random();
-        return examples[random.Next(0, examples.Count)];
+        
+        if (zeroImpressionExamples.Count > 0)
+        {
+            int selectedExampleId = random.Next(0, zeroImpressionExamples.Count);
+            return zeroImpressionExamples[selectedExampleId];
+        }
+        else
+        {
+            List<ExampleImpressionRecord> lowestImpressionRecords =
+                impressionService.GetLowestExampleImpressionRecords();
+
+            int selectedExampleId = lowestImpressionRecords[random.Next(0, lowestImpressionRecords.Count)].ExampleId;
+            return examples.Find(example => example.Id == selectedExampleId);
+        }
+        
     }
+
+    /*private static void UpdateExampleImpressions(int selectedExampleId, List<ExampleImpressionRecord> exampleImpressionRecords)
+    {
+        int recordIndex = exampleImpressionRecords.FindIndex(record => record.ExampleId == selectedExampleId);
+            
+        if (recordIndex != -1)
+        {
+            ExampleImpressionRecord foundRecord = exampleImpressionRecords[recordIndex];
+            foundRecord.ShowCount++;
+            exampleImpressionRecords[recordIndex] = foundRecord;
+        }
+        else
+        {
+            exampleImpressionRecords.Add(new ExampleImpressionRecord(selectedExampleId, 1));
+        }
+    }*/
 
     private static bool IsAnswerCorrect(Message answerMessage, Example example)
     {

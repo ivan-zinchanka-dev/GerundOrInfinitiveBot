@@ -1,4 +1,6 @@
-﻿using GerundOrInfinitiveBot.Services.Reporting;
+﻿using GerundOrInfinitiveBot.Models;
+using GerundOrInfinitiveBot.Services.Bot;
+using GerundOrInfinitiveBot.Services.Reporting;
 using GerundOrInfinitiveBot.Settings;
 using GerundOrInfinitiveBot.Tests.Services.Logging;
 using Microsoft.Extensions.Configuration;
@@ -46,4 +48,23 @@ public class ServiceTests
         Assert.IsTrue(sendingResult);
     }
     
+    [TestCase(1001, 4)]
+    [TestCase(1002, 3)]
+    [TestCase(1005, 1)]
+    public void AppendImpressionCorrectly(int exampleId, int targetImpressionCount)
+    {
+        var impressionService = new ImpressionService(new List<ExampleImpressionRecord>()
+        {
+            new ExampleImpressionRecord(1001, 3),
+            new ExampleImpressionRecord(1002, 2),
+            new ExampleImpressionRecord(1003, 1),
+        });
+        
+        impressionService.AppendExampleImpression(exampleId);
+
+        ExampleImpressionRecord foundRecord = impressionService.GetImpressionByExampleId(exampleId);
+        
+        Assert.That(foundRecord.ImpressionCount, Is.EqualTo(targetImpressionCount));
+    }
+
 }
