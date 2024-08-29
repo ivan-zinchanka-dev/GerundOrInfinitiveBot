@@ -214,22 +214,6 @@ public class BotService
         
     }
 
-    /*private static void UpdateExampleImpressions(int selectedExampleId, List<ExampleImpressionRecord> exampleImpressionRecords)
-    {
-        int recordIndex = exampleImpressionRecords.FindIndex(record => record.ExampleId == selectedExampleId);
-            
-        if (recordIndex != -1)
-        {
-            ExampleImpressionRecord foundRecord = exampleImpressionRecords[recordIndex];
-            foundRecord.ShowCount++;
-            exampleImpressionRecords[recordIndex] = foundRecord;
-        }
-        else
-        {
-            exampleImpressionRecords.Add(new ExampleImpressionRecord(selectedExampleId, 1));
-        }
-    }*/
-
     private static bool IsAnswerCorrect(Message answerMessage, Example example)
     {
         if (answerMessage == null || answerMessage.Text == null)
