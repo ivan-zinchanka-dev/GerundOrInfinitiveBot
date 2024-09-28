@@ -79,7 +79,7 @@ public class BotService
                     _logger.LogInformation(
                         $"User {sender.FirstName} with id {sender.Id} sent a message: {message.Text}");
                     
-                    Queue<string> answerTexts = new Queue<string>();
+                    Queue<string> responses = new Queue<string>();
                     
                     using (DatabaseService database = await _databaseServiceFactory.CreateDbContextAsync(cancellationToken))
                     {
@@ -101,11 +101,11 @@ public class BotService
                         switch (message.Text)
                         {
                             case StartCommand:
-                                answerTexts.Enqueue(SetNewExampleToUser(database.Examples, senderData));
+                                responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
                                 break;
                         
                             case HelpCommand:
-                                answerTexts.Enqueue(_botOptions.Value.HelpMessage);
+                                responses.Enqueue(_botOptions.Value.HelpMessage);
                                 break;
                         
                             default:
@@ -114,19 +114,19 @@ public class BotService
                                 
                                 if (senderCurrentExample == null)
                                 {
-                                    answerTexts.Enqueue(_botOptions.Value.DefaultAnswer);
+                                    responses.Enqueue(_botOptions.Value.DefaultResponse);
                                 }
                                 else if (IsAnswerCorrect(message, senderCurrentExample))
                                 {
-                                    answerTexts.Enqueue("That is correct! \ud83d\ude42\n" + 
+                                    responses.Enqueue("That is correct! \ud83d\ude42\n" + 
                                                         "Corrected sentence: " + senderCurrentExample.GetCorrectSentence());
-                                    answerTexts.Enqueue(SetNewExampleToUser(database.Examples, senderData));
+                                    responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
                                 }
                                 else
                                 {
-                                    answerTexts.Enqueue("That is incorrect! \ud83d\ude41\n" + 
+                                    responses.Enqueue("That is incorrect! \ud83d\ude41\n" + 
                                                         "Corrected sentence: " + senderCurrentExample.GetCorrectSentence());
-                                    answerTexts.Enqueue(SetNewExampleToUser(database.Examples, senderData));
+                                    responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
                                 }
                                 
                                 break;
@@ -135,9 +135,9 @@ public class BotService
                         await database.SaveChangesAsync(cancellationToken);
                     }
                     
-                    while (answerTexts.Count != 0)
+                    while (responses.Count != 0)
                     {
-                        string answerText = answerTexts.Dequeue();
+                        string answerText = responses.Dequeue();
                         
                         await botClient.SendTextMessageAsync(message.Chat.Id, answerText, 
                             cancellationToken: cancellationToken, parseMode: ParseMode.Html);
