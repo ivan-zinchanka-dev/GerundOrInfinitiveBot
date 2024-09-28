@@ -1,13 +1,10 @@
-﻿using System.Text.Json;
-using GerundOrInfinitiveBot.DataBaseObjects;
-using GerundOrInfinitiveBot.Models;
+﻿using GerundOrInfinitiveBot.DataBaseObjects;
 using GerundOrInfinitiveBot.Services.Database;
 using GerundOrInfinitiveBot.Services.Reporting;
 using GerundOrInfinitiveBot.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -115,12 +112,12 @@ public class BotService
             {
                 case StartSessionCommand:
                     responses.Enqueue(senderData.CurrentExample == null
-                        ? SetNewExampleToUser(database.Examples, senderData)
+                        ? HandleNewExample(senderData, database.Examples, database.Answers)
                         : "The session has already started.");
                     break;
                 
                 case NewExampleCommand:
-                    responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
+                    responses.Enqueue(HandleNewExample(senderData, database.Examples, database.Answers));
                     break;
             
                 case HelpCommand:
@@ -156,9 +153,8 @@ public class BotService
                         }
                         else
                         {
-                            responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
+                            responses.Enqueue(HandleNewExample(senderData, database.Examples, database.Answers));
                         }
-                        
                         
                     }
                     else
@@ -182,7 +178,7 @@ public class BotService
                         }
                         else
                         {
-                            responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
+                            responses.Enqueue(HandleNewExample(senderData, database.Examples, database.Answers));
                         }
                     }
                     
@@ -204,8 +200,6 @@ public class BotService
         }
     }
     
-    
-
     private async Task ExceptionHandler(ITelegramBotClient botClient, Update update, Exception exception, 
         CancellationToken cancellationToken)
     {
@@ -221,53 +215,21 @@ public class BotService
         }
     }
 
-    private string SetNewExampleToUser(DbSet<Example> examples, UserData userData)
+    private string HandleNewExample(UserData userData, DbSet<Example> examples, DbSet<Answer> answers)
     {
-        List<ExampleImpressionRecord> exampleImpressionRecords = new List<ExampleImpressionRecord>();
-        
-        if (!string.IsNullOrWhiteSpace(userData.ExampleImpressionsJson))
-        {
-            exampleImpressionRecords = 
-                JsonSerializer.Deserialize<List<ExampleImpressionRecord>>(userData.ExampleImpressionsJson) ?? 
-                new List<ExampleImpressionRecord>();
-        }
-        
-        ImpressionService impressionService = new ImpressionService(exampleImpressionRecords);
-        Example example = SelectNewExample(examples.ToList(), impressionService);
-        impressionService.AppendExampleImpression(example.Id);
-        
-        userData.CurrentExample = example;
-        userData.ExampleImpressionsJson = JsonSerializer.Serialize(impressionService.ExampleImpressionRecords);
-        
-        return string.Format(_botOptions.Value.TaskTextPattern, example.UsedWord, example.SourceSentence);
+        userData.CurrentExample = GetNewExample(userData, examples, answers);
+        return GetNewExampleMessage(userData.CurrentExample);
+    }
+    
+    private static Example GetNewExample(UserData userData, DbSet<Example> examples, DbSet<Answer> answers)
+    {
+        ImpressionService impressionService = new ImpressionService(answers);
+        return impressionService.GetExampleForUser(userData.UserId, examples.ToList());
     }
 
-    private static Example SelectNewExample(List<Example> examples, ImpressionService impressionService)
+    private string GetNewExampleMessage(Example example)
     {
-        if (examples.IsNullOrEmpty())
-        {
-            return null;
-        }
-        
-        IEnumerable<int> recordedExampleIds = impressionService.ExampleImpressionRecords.Select(record => record.ExampleId);
-        List<Example> zeroImpressionExamples = examples.Where(example => !recordedExampleIds.Contains(example.Id)).ToList();
-
-        Random random = new Random();
-        
-        if (zeroImpressionExamples.Count > 0)
-        {
-            int selectedExampleId = random.Next(0, zeroImpressionExamples.Count);
-            return zeroImpressionExamples[selectedExampleId];
-        }
-        else
-        {
-            List<ExampleImpressionRecord> lowestImpressionRecords =
-                impressionService.GetLowestExampleImpressionRecords();
-
-            int selectedExampleId = lowestImpressionRecords[random.Next(0, lowestImpressionRecords.Count)].ExampleId;
-            return examples.Find(example => example.Id == selectedExampleId);
-        }
-        
+        return string.Format(_botOptions.Value.TaskTextPattern, example.UsedWord, example.SourceSentence);
     }
 
     private static bool IsAnswerCorrect(Message answerMessage, Example example)

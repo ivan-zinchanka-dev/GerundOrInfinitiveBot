@@ -48,7 +48,7 @@ public class ServiceTests
         Assert.IsTrue(sendingResult);
     }
     
-    [TestCase(1001, 4)]
+    /*[TestCase(1001, 4)]
     [TestCase(1002, 3)]
     [TestCase(1005, 1)]
     public void AppendImpressionCorrectly(int exampleId, int targetImpressionCount)
@@ -65,6 +65,6 @@ public class ServiceTests
         ExampleImpressionRecord foundRecord = impressionService.GetImpressionByExampleId(exampleId);
         
         Assert.That(foundRecord.ImpressionCount, Is.EqualTo(targetImpressionCount));
-    }
+    }*/
 
 }

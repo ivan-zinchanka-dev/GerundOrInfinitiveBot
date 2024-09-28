@@ -38,10 +38,6 @@ public class DatabaseService : DbContext
         {
             userData
                 .HasKey(user => user.UserId);
-        
-            userData
-                .Property(user => user.ExampleImpressionsJson)
-                .IsRequired();
             
             userData
                 .HasOne(user => user.CurrentExample)
