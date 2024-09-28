@@ -25,7 +25,6 @@ public class DatabaseService : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.LogTo(OnLogFilter, OnLogAction);
-        //optionsBuilder.EnableSensitiveDataLogging();
         optionsBuilder.UseSqlServer(_options.Value.SqlServerConnection);
     }
     
@@ -65,7 +64,7 @@ public class DatabaseService : DbContext
 
     private static bool OnLogFilter(EventId eventId, LogLevel logLevel)
     {
-        return (int) logLevel >= (int) LogLevel.Information;
+        return (int) logLevel >= (int) LogLevel.Warning;
     }
     
     private void OnLogAction(EventData eventData)
