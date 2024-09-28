@@ -121,12 +121,16 @@ public class BotService
                                     responses.Enqueue("That is correct! \ud83d\ude42\n" + 
                                                         "Corrected sentence: " + senderCurrentExample.GetCorrectSentence());
                                     responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
+
+                                    database.Answers.Add(CreateAnswerEntry(sender.Id, senderCurrentExample.Id, true));
                                 }
                                 else
                                 {
                                     responses.Enqueue("That is incorrect! \ud83d\ude41\n" + 
                                                         "Corrected sentence: " + senderCurrentExample.GetCorrectSentence());
                                     responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
+                                    
+                                    database.Answers.Add(CreateAnswerEntry(sender.Id, senderCurrentExample.Id, false));
                                 }
                                 
                                 break;
@@ -225,6 +229,11 @@ public class BotService
 
         return string.Equals(answer, example.CorrectAnswer, StringComparison.OrdinalIgnoreCase) || 
                string.Equals(answer, example.AlternativeCorrectAnswer, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static Answer CreateAnswerEntry(long userId, int exampleId, bool isCorrect)
+    {
+        return new Answer(Guid.NewGuid(), userId, exampleId, DateTime.UtcNow, isCorrect);
     }
 
     private Task ErrorHandler(ITelegramBotClient botClient, Exception error, CancellationToken cancellationToken)
