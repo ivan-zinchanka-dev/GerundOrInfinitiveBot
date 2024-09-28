@@ -6,13 +6,14 @@ namespace GerundOrInfinitiveBot.Services.Bot;
 public class SessionService
 {
     private const int ExamplesPerSession = 10;
-    private const string SessionResultsMessagePattern = "Your session result: {0}/{1}.";
     
     private readonly IEnumerable<Answer> _answers;
+    private readonly string _sessionResultsMsgPattern;
     
-    public SessionService(IEnumerable<Answer> answers)
+    public SessionService(IEnumerable<Answer> answers, string sessionResultsMsgPattern)
     {
         _answers = answers;
+        _sessionResultsMsgPattern = sessionResultsMsgPattern;
     }
 
     public bool TryGetUserSessionResults(long userId, out string sessionResultsMessage)
@@ -45,6 +46,8 @@ public class SessionService
 
     private string GetUserSessionResultsMessage(long userId)
     {
+        Debug.Assert(!string.IsNullOrEmpty(_sessionResultsMsgPattern));
+        
         IEnumerable<Answer> sessionAnswers = _answers
             .Where(answer => answer.UserId == userId)
             .OrderByDescending(answer => answer.ReceivingTime)
@@ -53,7 +56,7 @@ public class SessionService
         int correctAnswersCount = sessionAnswers.Count(answer => answer.Result);
         int allAnswersCount = sessionAnswers.Count();
 
-        return string.Format(SessionResultsMessagePattern, correctAnswersCount, allAnswersCount);
+        return string.Format(_sessionResultsMsgPattern, correctAnswersCount, allAnswersCount);
     }
 
 }

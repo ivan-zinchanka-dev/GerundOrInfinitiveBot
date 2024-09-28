@@ -139,8 +139,8 @@ public class BotService
                     }
                     else if (IsAnswerCorrect(message, senderCurrentExample))
                     {
-                        responses.Enqueue("That is correct! \ud83d\ude42\n" + 
-                                            "Corrected sentence: " + senderCurrentExample.GetCorrectSentence());
+                        responses.Enqueue(_botOptions.Value.CorrectAnswerPattern + 
+                                          senderCurrentExample.GetCorrectSentence());
                         
                         database.Answers.Add(
                             CreateAnswerEntry(sender.Id, senderCurrentExample.Id, true));
@@ -150,8 +150,8 @@ public class BotService
                     }
                     else
                     {
-                        responses.Enqueue("That is incorrect! \ud83d\ude41\n" + 
-                                            "Corrected sentence: " + senderCurrentExample.GetCorrectSentence());
+                        responses.Enqueue(_botOptions.Value.IncorrectAnswerPattern + 
+                                          senderCurrentExample.GetCorrectSentence());
                         
                         database.Answers.Add(
                             CreateAnswerEntry(sender.Id, senderCurrentExample.Id, false));
@@ -215,11 +215,11 @@ public class BotService
     
     private void HandleSessions(DatabaseService database, UserData senderData, Queue<string> responses)
     {
-        SessionService sessionService = new SessionService(database.Answers);
+        SessionService sessionService = new SessionService(database.Answers, _botOptions.Value.SessionResultsPattern);
 
         if (sessionService.TryGetUserSessionResults(senderData.UserId, out string sessionResultsMessage))
         {
-            responses.Enqueue(sessionResultsMessage + "\nInput /start to start new session.");
+            responses.Enqueue(sessionResultsMessage + _botOptions.Value.NewSessionHint);
             senderData.CurrentExample = null;
         }
         else
