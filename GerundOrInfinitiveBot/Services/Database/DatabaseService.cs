@@ -14,7 +14,8 @@ public class DatabaseService : DbContext
 
     public DbSet<Example> Examples { get; private set; }
     public DbSet<UserData> UserData { get; private set; }
-    
+    public DbSet<Answer> Answers { get; private set; }
+
     public DatabaseService(IOptions<ConnectionSettings> options, ILogger<DatabaseService> logger)
     {
         _options = options;
@@ -46,6 +47,23 @@ public class DatabaseService : DbContext
                 .HasOne(user => user.CurrentExample)
                 .WithMany(example => example.CurrentUsers)
                 .HasForeignKey(user => user.CurrentExampleId);
+        });
+
+        modelBuilder.Entity<Answer>(answer =>
+        {
+            answer
+                .HasKey(ans => ans.Id);
+
+            answer
+                .HasOne(ans => ans.UserData)
+                .WithMany(user => user.Answers)
+                .HasForeignKey(ans => ans.UserId);
+
+            answer
+                .HasOne(ans => ans.Example)
+                .WithMany(example => example.AnswersWithIt)
+                .HasForeignKey(ans => ans.ExampleId);
+            
         });
     }
 
