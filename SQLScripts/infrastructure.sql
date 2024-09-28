@@ -110,6 +110,9 @@ GO
 DROP VIEW [ShowUsagesOfExample]
 GO
 
+DROP TABLE [Answers]
+GO
+
 DROP TABLE [Examples]
 GO
 

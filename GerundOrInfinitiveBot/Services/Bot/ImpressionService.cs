@@ -1,4 +1,5 @@
-﻿using GerundOrInfinitiveBot.Models;
+﻿using System.Diagnostics;
+using GerundOrInfinitiveBot.Models;
 using GerundOrInfinitiveBot.Models.DataBaseObjects;
 
 namespace GerundOrInfinitiveBot.Services.Bot;
@@ -14,6 +15,9 @@ public class ImpressionService
     
     public Example GetExampleForUser(long userId, List<Example> allExamples)
     {
+        Debug.Assert(_answers != null);
+        Debug.Assert(allExamples != null);
+        
         IEnumerable<int> recordedExampleIds = _answers
             .Select(answer => answer.ExampleId);
         

@@ -1,10 +1,11 @@
-﻿using GerundOrInfinitiveBot.Models.DataBaseObjects;
+﻿using System.Diagnostics;
+using GerundOrInfinitiveBot.Models.DataBaseObjects;
 
 namespace GerundOrInfinitiveBot.Services.Bot;
 
 public class SessionService
 {
-    private const int ExamplesPerSession = 5;
+    private const int ExamplesPerSession = 10;
     private const string SessionResultsMessagePattern = "Your session result: {0}/{1}.";
     
     private readonly IEnumerable<Answer> _answers;
@@ -16,6 +17,8 @@ public class SessionService
 
     public bool TryGetUserSessionResults(long userId, out string sessionResultsMessage)
     {
+        Debug.Assert(_answers != null);
+        
         if (IsUserSessionCompleted(userId))
         {
             sessionResultsMessage = GetUserSessionResultsMessage(userId);

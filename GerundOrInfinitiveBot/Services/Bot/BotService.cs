@@ -54,7 +54,7 @@ public class BotService
     {
         using (CancellationTokenSource cts = new CancellationTokenSource())
         {
-            _botClient.StartReceiving(UpdateHandler, ErrorHandler, _receiverOptions, cts.Token);
+            _botClient.StartReceiving(HandleUpdate, HandleError, _receiverOptions, cts.Token);
         
             User me = await _botClient.GetMeAsync(cancellationToken: cts.Token);
             _logger.LogInformation($"{me.FirstName} is launched");
@@ -63,7 +63,7 @@ public class BotService
         }
     }
 
-    private async Task UpdateHandler(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+    private async Task HandleUpdate(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
     {
         try
         {
@@ -71,18 +71,18 @@ public class BotService
             {
                 case UpdateType.Message:
                 {
-                    await MessageHandler(botClient, update.Message, cancellationToken);
+                    await HandleMessage(botClient, update.Message, cancellationToken);
                     return;
                 }
             }
         }
         catch (Exception exception)
         {
-            await ExceptionHandler(botClient, update, exception, cancellationToken);
+            await HandleException(botClient, update, exception, cancellationToken);
         }
     }
 
-    private async Task MessageHandler(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+    private async Task HandleMessage(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
     {
         User sender = message.From;
         
@@ -93,6 +93,11 @@ public class BotService
         
         using (DatabaseService database = await _databaseServiceFactory.CreateDbContextAsync(cancellationToken))
         {
+            if (!await database.Examples.AnyAsync(cancellationToken: cancellationToken))
+            {
+                throw new InvalidOperationException("Examples database is empty!");
+            }
+
             UserData foundUserData = database.UserData
                 .Include(userData => userData.CurrentExample)
                 .FirstOrDefault(userData => userData.UserId == sender.Id);
@@ -223,7 +228,7 @@ public class BotService
         }
     }
     
-    private Task ErrorHandler(ITelegramBotClient botClient, Exception error, CancellationToken cancellationToken)
+    private Task HandleError(ITelegramBotClient botClient, Exception error, CancellationToken cancellationToken)
     {
         if (error is ApiRequestException apiRequestException)
         {
@@ -237,7 +242,7 @@ public class BotService
         return Task.CompletedTask;
     }
     
-    private async Task ExceptionHandler(ITelegramBotClient botClient, Update update, Exception exception, 
+    private async Task HandleException(ITelegramBotClient botClient, Update update, Exception exception, 
         CancellationToken cancellationToken)
     {
         _logger.LogError($"Internal error!\n{exception}");
