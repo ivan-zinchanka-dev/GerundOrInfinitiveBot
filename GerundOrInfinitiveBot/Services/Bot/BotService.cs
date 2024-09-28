@@ -132,17 +132,37 @@ public class BotService
                     {
                         responses.Enqueue("That is correct! \ud83d\ude42\n" + 
                                             "Corrected sentence: " + senderCurrentExample.GetCorrectSentence());
-                        responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
-
+                        
                         database.Answers.Add(CreateAnswerEntry(sender.Id, senderCurrentExample.Id, true));
+
+                        SessionService sessionService = new SessionService(() => database.Answers);
+
+                        if (sessionService.IsUserSessionCompleted(sender.Id))
+                        {
+                            responses.Enqueue(
+                                sessionService.GetUserSessionResultsMessage(sender.Id) + 
+                                "\nInput /start to start new session.");
+                        }
+                        
+                        responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
                     }
                     else
                     {
                         responses.Enqueue("That is incorrect! \ud83d\ude41\n" + 
                                             "Corrected sentence: " + senderCurrentExample.GetCorrectSentence());
-                        responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
                         
                         database.Answers.Add(CreateAnswerEntry(sender.Id, senderCurrentExample.Id, false));
+                        
+                        SessionService sessionService = new SessionService(() => database.Answers);
+
+                        if (sessionService.IsUserSessionCompleted(sender.Id))
+                        {
+                            responses.Enqueue(
+                                sessionService.GetUserSessionResultsMessage(sender.Id) + 
+                                "\nInput /start to start new session.");
+                        }
+                        
+                        responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
                     }
                     
                     break;
