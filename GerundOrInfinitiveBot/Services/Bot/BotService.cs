@@ -73,99 +73,108 @@ public class BotService
             {
                 case UpdateType.Message:
                 {
-                    Message message = update.Message;
-                    User sender = message.From;
-                    
-                    _logger.LogInformation(
-                        $"User {sender.FirstName} with id {sender.Id} sent a message: {message.Text}");
-                    
-                    Queue<string> responses = new Queue<string>();
-                    
-                    using (DatabaseService database = await _databaseServiceFactory.CreateDbContextAsync(cancellationToken))
-                    {
-                        UserData foundUserData = database.UserData
-                            .Include(userData => userData.CurrentExample)
-                            .FirstOrDefault(userData => userData.UserId == sender.Id);
-
-                        UserData senderData;
-                        if (foundUserData == null)
-                        {
-                            senderData = new UserData(sender.Id);
-                            database.UserData.Add(senderData);
-                        }
-                        else
-                        {
-                            senderData = foundUserData;
-                        }
-                        
-                        switch (message.Text)
-                        {
-                            case StartCommand:
-                                responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
-                                break;
-                        
-                            case HelpCommand:
-                                responses.Enqueue(_botOptions.Value.HelpMessage);
-                                break;
-                        
-                            default:
-
-                                Example senderCurrentExample = senderData.CurrentExample;
-                                
-                                if (senderCurrentExample == null)
-                                {
-                                    responses.Enqueue(_botOptions.Value.DefaultResponse);
-                                }
-                                else if (IsAnswerCorrect(message, senderCurrentExample))
-                                {
-                                    responses.Enqueue("That is correct! \ud83d\ude42\n" + 
-                                                        "Corrected sentence: " + senderCurrentExample.GetCorrectSentence());
-                                    responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
-
-                                    database.Answers.Add(CreateAnswerEntry(sender.Id, senderCurrentExample.Id, true));
-                                }
-                                else
-                                {
-                                    responses.Enqueue("That is incorrect! \ud83d\ude41\n" + 
-                                                        "Corrected sentence: " + senderCurrentExample.GetCorrectSentence());
-                                    responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
-                                    
-                                    database.Answers.Add(CreateAnswerEntry(sender.Id, senderCurrentExample.Id, false));
-                                }
-                                
-                                break;
-                        }
-                        
-                        await database.SaveChangesAsync(cancellationToken);
-                    }
-                    
-                    while (responses.Count != 0)
-                    {
-                        string answerText = responses.Dequeue();
-                        
-                        await botClient.SendTextMessageAsync(message.Chat.Id, answerText, 
-                            cancellationToken: cancellationToken, parseMode: ParseMode.Html);
-                        
-                        _logger.LogInformation(
-                            $"User {sender.FirstName} with id {sender.Id} was sent a response: {answerText}");
-                    }
-                    
+                    await MessageHandler(botClient, update.Message, cancellationToken);
                     return;
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            _logger.LogError($"Internal error!\n{ex}");
+            await ExceptionHandler(botClient, update, exception, cancellationToken);
+        }
+    }
+
+    private async Task MessageHandler(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+    {
+        User sender = message.From;
         
-            await _reportService.ReportExceptionAsync(ex);
-            
-            if (update.Type == UpdateType.Message)
+        _logger.LogInformation(
+            $"User {sender.FirstName} with id {sender.Id} sent a message: {message.Text}");
+        
+        Queue<string> responses = new Queue<string>();
+        
+        using (DatabaseService database = await _databaseServiceFactory.CreateDbContextAsync(cancellationToken))
+        {
+            UserData foundUserData = database.UserData
+                .Include(userData => userData.CurrentExample)
+                .FirstOrDefault(userData => userData.UserId == sender.Id);
+
+            UserData senderData;
+            if (foundUserData == null)
             {
-                await botClient.SendTextMessageAsync(update.Message.Chat.Id,
-                    $"Internal error!\n<code>{ex}</code>", 
-                    cancellationToken: cancellationToken, parseMode: ParseMode.Html);
+                senderData = new UserData(sender.Id);
+                database.UserData.Add(senderData);
             }
+            else
+            {
+                senderData = foundUserData;
+            }
+            
+            switch (message.Text)
+            {
+                case StartCommand:
+                    responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
+                    break;
+            
+                case HelpCommand:
+                    responses.Enqueue(_botOptions.Value.HelpMessage);
+                    break;
+            
+                default:
+
+                    Example senderCurrentExample = senderData.CurrentExample;
+                    
+                    if (senderCurrentExample == null)
+                    {
+                        responses.Enqueue(_botOptions.Value.DefaultResponse);
+                    }
+                    else if (IsAnswerCorrect(message, senderCurrentExample))
+                    {
+                        responses.Enqueue("That is correct! \ud83d\ude42\n" + 
+                                            "Corrected sentence: " + senderCurrentExample.GetCorrectSentence());
+                        responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
+
+                        database.Answers.Add(CreateAnswerEntry(sender.Id, senderCurrentExample.Id, true));
+                    }
+                    else
+                    {
+                        responses.Enqueue("That is incorrect! \ud83d\ude41\n" + 
+                                            "Corrected sentence: " + senderCurrentExample.GetCorrectSentence());
+                        responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
+                        
+                        database.Answers.Add(CreateAnswerEntry(sender.Id, senderCurrentExample.Id, false));
+                    }
+                    
+                    break;
+            }
+            
+            await database.SaveChangesAsync(cancellationToken);
+        }
+        
+        while (responses.Count != 0)
+        {
+            string answerText = responses.Dequeue();
+            
+            await botClient.SendTextMessageAsync(message.Chat.Id, answerText, 
+                cancellationToken: cancellationToken, parseMode: ParseMode.Html);
+            
+            _logger.LogInformation(
+                $"User {sender.FirstName} with id {sender.Id} was sent a response: {answerText}");
+        }
+    }
+
+    private async Task ExceptionHandler(ITelegramBotClient botClient, Update update, Exception exception, 
+        CancellationToken cancellationToken)
+    {
+        _logger.LogError($"Internal error!\n{exception}");
+        
+        await _reportService.ReportExceptionAsync(exception);
+            
+        if (update.Type == UpdateType.Message)
+        {
+            await botClient.SendTextMessageAsync(update.Message.Chat.Id,
+                $"Internal error!\n<code>{exception}</code>", 
+                cancellationToken: cancellationToken, parseMode: ParseMode.Html);
         }
     }
 
