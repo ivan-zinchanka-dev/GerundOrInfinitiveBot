@@ -18,7 +18,8 @@ namespace GerundOrInfinitiveBot.Services.Bot;
 
 public class BotService
 {
-    private const string StartCommand = "/start";
+    private const string StartSessionCommand = "/start";
+    private const string NewExampleCommand = "/new";
     private const string HelpCommand = "/help";
 
     private readonly IOptions<ConnectionSettings> _connectionOptions;
@@ -112,7 +113,13 @@ public class BotService
             
             switch (message.Text)
             {
-                case StartCommand:
+                case StartSessionCommand:
+                    responses.Enqueue(senderData.CurrentExample == null
+                        ? SetNewExampleToUser(database.Examples, senderData)
+                        : "The session has already started.");
+                    break;
+                
+                case NewExampleCommand:
                     responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
                     break;
             
@@ -142,9 +149,15 @@ public class BotService
                             responses.Enqueue(
                                 sessionService.GetUserSessionResultsMessage(sender.Id) + 
                                 "\nInput /start to start new session.");
+                            
+                            senderData.CurrentExample = null;
+                        }
+                        else
+                        {
+                            responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
                         }
                         
-                        responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
+                        
                     }
                     else
                     {
@@ -160,9 +173,13 @@ public class BotService
                             responses.Enqueue(
                                 sessionService.GetUserSessionResultsMessage(sender.Id) + 
                                 "\nInput /start to start new session.");
+
+                            senderData.CurrentExample = null;
                         }
-                        
-                        responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
+                        else
+                        {
+                            responses.Enqueue(SetNewExampleToUser(database.Examples, senderData));
+                        }
                     }
                     
                     break;
