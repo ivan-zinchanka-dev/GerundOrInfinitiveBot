@@ -1,24 +1,16 @@
 ﻿using GerundOrInfinitiveBot.DataBaseObjects;
 using GerundOrInfinitiveBot.Models;
-using GerundOrInfinitiveBot.Services.Database;
 
 namespace GerundOrInfinitiveBot.Services.Bot;
 
 public class ImpressionService
 {
     private readonly IEnumerable<Answer> _answers;
-
-    //private DatabaseService _databaseService;
     
     public ImpressionService(IEnumerable<Answer> answers)
     {
         _answers = answers;
     }
-    
-    /*public ImpressionService(DatabaseService databaseService)
-    {
-        _databaseService = databaseService;
-    }*/
     
     public Example GetExampleForUser(long userId, List<Example> allExamples)
     {

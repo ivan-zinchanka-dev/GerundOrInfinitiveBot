@@ -5,19 +5,32 @@ namespace GerundOrInfinitiveBot.Services.Bot;
 public class SessionService
 {
     private const int ExamplesPerSession = 5;
-
-    private readonly Func<IEnumerable<Answer>> _answersGetter;
+    private const string SessionResultsMessagePattern = "Your session result: {0}/{1}.";
     
-    public SessionService(Func<IEnumerable<Answer>> answersGetter)
+    private readonly IEnumerable<Answer> _answers;
+    
+    public SessionService(IEnumerable<Answer> answers)
     {
-        _answersGetter = answersGetter;
+        _answers = answers;
     }
-    
-    public bool IsUserSessionCompleted(long userId)
+
+    public bool TryGetUserSessionResults(long userId, out string sessionResultsMessage)
     {
-        IEnumerable<Answer> answers = _answersGetter();
-        
-        int userAnswersCount = answers.Count(answer => answer.UserId == userId);
+        if (IsUserSessionCompleted(userId))
+        {
+            sessionResultsMessage = GetUserSessionResultsMessage(userId);
+            return true;
+        }
+        else
+        {
+            sessionResultsMessage = null;
+            return false;
+        }
+    }
+
+    private bool IsUserSessionCompleted(long userId)
+    {
+        int userAnswersCount = _answers.Count(answer => answer.UserId == userId);
 
         if (userAnswersCount == 0)
         {
@@ -27,24 +40,17 @@ public class SessionService
         return userAnswersCount % ExamplesPerSession == 0;
     }
 
-    public string GetUserSessionResultsMessage(long userId)
+    private string GetUserSessionResultsMessage(long userId)
     {
-        IEnumerable<Answer> answers = _answersGetter();
-        
-        IEnumerable<Answer> sessionAnswers = answers
+        IEnumerable<Answer> sessionAnswers = _answers
             .Where(answer => answer.UserId == userId)
             .OrderByDescending(answer => answer.ReceivingTime)
             .Take(ExamplesPerSession);
-
-        /*foreach (Answer sessionAnswer in sessionAnswers)
-        {
-            Console.WriteLine(sessionAnswer);
-        } */
         
         int correctAnswersCount = sessionAnswers.Count(answer => answer.Result);
         int allAnswersCount = sessionAnswers.Count();
-        
-        return $"Your session result: {correctAnswersCount}/{allAnswersCount}.";
+
+        return string.Format(SessionResultsMessagePattern, correctAnswersCount, allAnswersCount);
     }
 
 }

@@ -137,49 +137,22 @@ public class BotService
                         responses.Enqueue("That is correct! \ud83d\ude42\n" + 
                                             "Corrected sentence: " + senderCurrentExample.GetCorrectSentence());
                         
-                        database.Answers.Add(CreateAnswerEntry(sender.Id, senderCurrentExample.Id, true));
-
+                        database.Answers.Add(
+                            CreateAnswerEntry(sender.Id, senderCurrentExample.Id, true));
                         await database.SaveChangesAsync(cancellationToken);
                         
-                        SessionService sessionService = new SessionService(() => database.Answers);
-
-                        if (sessionService.IsUserSessionCompleted(sender.Id))
-                        {
-                            responses.Enqueue(
-                                sessionService.GetUserSessionResultsMessage(sender.Id) + 
-                                "\nInput /start to start new session.");
-                            
-                            senderData.CurrentExample = null;
-                        }
-                        else
-                        {
-                            responses.Enqueue(HandleNewExample(senderData, database.Examples, database.Answers));
-                        }
-                        
+                        HandleSessions(database, senderData, responses);
                     }
                     else
                     {
                         responses.Enqueue("That is incorrect! \ud83d\ude41\n" + 
                                             "Corrected sentence: " + senderCurrentExample.GetCorrectSentence());
                         
-                        database.Answers.Add(CreateAnswerEntry(sender.Id, senderCurrentExample.Id, false));
-                        
+                        database.Answers.Add(
+                            CreateAnswerEntry(sender.Id, senderCurrentExample.Id, false));
                         await database.SaveChangesAsync(cancellationToken);
                         
-                        SessionService sessionService = new SessionService(() => database.Answers);
-
-                        if (sessionService.IsUserSessionCompleted(sender.Id))
-                        {
-                            responses.Enqueue(
-                                sessionService.GetUserSessionResultsMessage(sender.Id) + 
-                                "\nInput /start to start new session.");
-
-                            senderData.CurrentExample = null;
-                        }
-                        else
-                        {
-                            responses.Enqueue(HandleNewExample(senderData, database.Examples, database.Answers));
-                        }
+                        HandleSessions(database, senderData, responses);
                     }
                     
                     break;
@@ -200,19 +173,17 @@ public class BotService
         }
     }
     
-    private async Task ExceptionHandler(ITelegramBotClient botClient, Update update, Exception exception, 
-        CancellationToken cancellationToken)
+    private static bool IsAnswerCorrect(Message answerMessage, Example example)
     {
-        _logger.LogError($"Internal error!\n{exception}");
-        
-        await _reportService.ReportExceptionAsync(exception);
-            
-        if (update.Type == UpdateType.Message)
+        if (answerMessage == null || answerMessage.Text == null)
         {
-            await botClient.SendTextMessageAsync(update.Message.Chat.Id,
-                $"Internal error!\n<code>{exception}</code>", 
-                cancellationToken: cancellationToken, parseMode: ParseMode.Html);
+            return false;
         }
+
+        string answer = answerMessage.Text.Trim();
+
+        return string.Equals(answer, example.CorrectAnswer, StringComparison.OrdinalIgnoreCase) || 
+               string.Equals(answer, example.AlternativeCorrectAnswer, StringComparison.OrdinalIgnoreCase);
     }
 
     private string HandleNewExample(UserData userData, DbSet<Example> examples, DbSet<Answer> answers)
@@ -232,24 +203,26 @@ public class BotService
         return string.Format(_botOptions.Value.TaskTextPattern, example.UsedWord, example.SourceSentence);
     }
 
-    private static bool IsAnswerCorrect(Message answerMessage, Example example)
-    {
-        if (answerMessage == null || answerMessage.Text == null)
-        {
-            return false;
-        }
-
-        string answer = answerMessage.Text.Trim();
-
-        return string.Equals(answer, example.CorrectAnswer, StringComparison.OrdinalIgnoreCase) || 
-               string.Equals(answer, example.AlternativeCorrectAnswer, StringComparison.OrdinalIgnoreCase);
-    }
-
     private static Answer CreateAnswerEntry(long userId, int exampleId, bool isCorrect)
     {
         return new Answer(Guid.NewGuid(), userId, exampleId, DateTime.UtcNow, isCorrect);
     }
+    
+    private void HandleSessions(DatabaseService database, UserData senderData, Queue<string> responses)
+    {
+        SessionService sessionService = new SessionService(database.Answers);
 
+        if (sessionService.TryGetUserSessionResults(senderData.UserId, out string sessionResultsMessage))
+        {
+            responses.Enqueue(sessionResultsMessage + "\nInput /start to start new session.");
+            senderData.CurrentExample = null;
+        }
+        else
+        {
+            responses.Enqueue(HandleNewExample(senderData, database.Examples, database.Answers));
+        }
+    }
+    
     private Task ErrorHandler(ITelegramBotClient botClient, Exception error, CancellationToken cancellationToken)
     {
         if (error is ApiRequestException apiRequestException)
@@ -262,6 +235,21 @@ public class BotService
         }
         
         return Task.CompletedTask;
+    }
+    
+    private async Task ExceptionHandler(ITelegramBotClient botClient, Update update, Exception exception, 
+        CancellationToken cancellationToken)
+    {
+        _logger.LogError($"Internal error!\n{exception}");
+        
+        await _reportService.ReportExceptionAsync(exception);
+            
+        if (update.Type == UpdateType.Message)
+        {
+            await botClient.SendTextMessageAsync(update.Message.Chat.Id,
+                $"Internal error!\n<code>{exception}</code>", 
+                cancellationToken: cancellationToken, parseMode: ParseMode.Html);
+        }
     }
     
 }
