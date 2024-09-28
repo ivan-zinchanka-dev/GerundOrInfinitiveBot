@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using GerundOrInfinitiveBot.DataBaseObjects;
+﻿using GerundOrInfinitiveBot.DataBaseObjects;
 
 namespace GerundOrInfinitiveBot.Services.Bot;
 
@@ -16,12 +15,8 @@ public class SessionService
     
     public bool IsUserSessionCompleted(long userId)
     {
-        Debug.Assert(_answersGetter != null);
-
         IEnumerable<Answer> answers = _answersGetter();
         
-        Debug.Assert(answers != null);
-
         int userAnswersCount = answers.Count(answer => answer.UserId == userId);
 
         if (userAnswersCount == 0)
@@ -41,6 +36,11 @@ public class SessionService
             .OrderByDescending(answer => answer.ReceivingTime)
             .Take(ExamplesPerSession);
 
+        /*foreach (Answer sessionAnswer in sessionAnswers)
+        {
+            Console.WriteLine(sessionAnswer);
+        } */
+        
         int correctAnswersCount = sessionAnswers.Count(answer => answer.Result);
         int allAnswersCount = sessionAnswers.Count();
         

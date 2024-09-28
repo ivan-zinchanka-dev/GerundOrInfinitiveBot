@@ -19,4 +19,9 @@ public class Answer
         ReceivingTime = receivingTime;
         Result = result;
     }
+
+    public override string ToString()
+    {
+        return $"Example Id: {ExampleId}, ReceivingTime: {ReceivingTime}, Result: {Result}";
+    }
 }

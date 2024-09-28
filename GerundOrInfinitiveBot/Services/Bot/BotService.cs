@@ -142,6 +142,8 @@ public class BotService
                         
                         database.Answers.Add(CreateAnswerEntry(sender.Id, senderCurrentExample.Id, true));
 
+                        await database.SaveChangesAsync(cancellationToken);
+                        
                         SessionService sessionService = new SessionService(() => database.Answers);
 
                         if (sessionService.IsUserSessionCompleted(sender.Id))
@@ -165,6 +167,8 @@ public class BotService
                                             "Corrected sentence: " + senderCurrentExample.GetCorrectSentence());
                         
                         database.Answers.Add(CreateAnswerEntry(sender.Id, senderCurrentExample.Id, false));
+                        
+                        await database.SaveChangesAsync(cancellationToken);
                         
                         SessionService sessionService = new SessionService(() => database.Answers);
 
@@ -199,6 +203,8 @@ public class BotService
                 $"User {sender.FirstName} with id {sender.Id} was sent a response: {answerText}");
         }
     }
+    
+    
 
     private async Task ExceptionHandler(ITelegramBotClient botClient, Update update, Exception exception, 
         CancellationToken cancellationToken)
