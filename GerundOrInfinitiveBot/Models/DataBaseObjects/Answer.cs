@@ -1,4 +1,4 @@
-﻿namespace GerundOrInfinitiveBot.DataBaseObjects;
+﻿namespace GerundOrInfinitiveBot.Models.DataBaseObjects;
 
 public class Answer
 {

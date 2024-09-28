@@ -1,6 +1,5 @@
 ﻿namespace GerundOrInfinitiveBot.Models;
 
-[Serializable]
 public struct ExampleImpressionRecord
 {
     public int ExampleId { get; set; }

@@ -1,4 +1,4 @@
-﻿using GerundOrInfinitiveBot.DataBaseObjects;
+﻿using GerundOrInfinitiveBot.Models.DataBaseObjects;
 using GerundOrInfinitiveBot.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;

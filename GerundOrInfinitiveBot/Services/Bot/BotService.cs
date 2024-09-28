@@ -1,4 +1,4 @@
-﻿using GerundOrInfinitiveBot.DataBaseObjects;
+﻿using GerundOrInfinitiveBot.Models.DataBaseObjects;
 using GerundOrInfinitiveBot.Services.Database;
 using GerundOrInfinitiveBot.Services.Reporting;
 using GerundOrInfinitiveBot.Settings;
