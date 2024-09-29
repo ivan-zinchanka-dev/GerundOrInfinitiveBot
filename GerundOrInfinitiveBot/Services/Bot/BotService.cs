@@ -69,16 +69,16 @@ public class BotService
     {
         try
         {
-            switch (update.Type)
+            Message message = update.Type switch
             {
-                case UpdateType.Message:
-                    await HandleMessage(botClient, update.Message, cancellationToken);
-                    return;
-                
-                case UpdateType.CallbackQuery: 
-                    await HandleCallbackQuery(botClient, update.CallbackQuery, cancellationToken);
-                    
-                    return;
+                UpdateType.Message => update.Message,
+                UpdateType.CallbackQuery => QueryToMessage(update.CallbackQuery),
+                _ => null
+            };
+
+            if (message != null)
+            {
+                await HandleMessage(botClient, message, cancellationToken);
             }
         }
         catch (Exception exception)
@@ -87,21 +87,22 @@ public class BotService
         }
     }
 
-    private async Task HandleMessage(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+    private static Message QueryToMessage(CallbackQuery callbackQuery)
     {
-        await HandleRequest(botClient, message.From, message.Text, message.Chat, cancellationToken);
-    }
-    
-    private async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callbackQuery, CancellationToken cancellationToken)
-    {
-        await HandleRequest(botClient, callbackQuery.From, callbackQuery.Data, callbackQuery.Message.Chat, cancellationToken);
+        return new Message()
+        {
+            From = callbackQuery.From,
+            Text = callbackQuery.Data,
+            Chat = callbackQuery.Message.Chat
+        };
     }
 
-    private async Task HandleRequest(ITelegramBotClient botClient, User sender, string text, Chat chat, 
-        CancellationToken cancellationToken)
+    private async Task HandleMessage(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
     {
+        User sender = message.From;
+        
         _logger.LogInformation(
-            $"User {sender.FirstName} with id {sender.Id} sent a message: {text}");
+            $"User {sender.FirstName} with id {sender.Id} sent a message: {message.Text}");
         
         Queue<BotResponse> responses = new Queue<BotResponse>();
         
@@ -127,7 +128,7 @@ public class BotService
                 senderData = foundUserData;
             }
             
-            switch (text)
+            switch (message.Text)
             {
                 case StartSessionCommand:
                     responses.Enqueue(senderData.CurrentExample == null
@@ -151,7 +152,7 @@ public class BotService
                     {
                         responses.Enqueue(new BotResponse(_botOptions.Value.DefaultResponse));
                     }
-                    else if (IsAnswerCorrect(text, senderCurrentExample))
+                    else if (IsAnswerCorrect(message.Text, senderCurrentExample))
                     {
                         responses.Enqueue(new BotResponse(
                             _botOptions.Value.CorrectAnswerPattern + senderCurrentExample.GetCorrectSentence()));
@@ -182,7 +183,7 @@ public class BotService
         {
             BotResponse response = responses.Dequeue();
             
-            await botClient.SendTextMessageAsync(chat.Id, response.Text, parseMode: ParseMode.Html, 
+            await botClient.SendTextMessageAsync(message.Chat.Id, response.Text, parseMode: ParseMode.Html, 
                 replyMarkup: response.ReplyMarkup, cancellationToken: cancellationToken);
             
             _logger.LogInformation(
