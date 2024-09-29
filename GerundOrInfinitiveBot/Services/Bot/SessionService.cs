@@ -5,7 +5,7 @@ namespace GerundOrInfinitiveBot.Services.Bot;
 
 public class SessionService
 {
-    private const int ExamplesPerSession = 5;
+    private const int ExamplesPerSession = 10;
     
     private readonly IEnumerable<Answer> _answers;
     private readonly string _sessionResultsMsgPattern;
