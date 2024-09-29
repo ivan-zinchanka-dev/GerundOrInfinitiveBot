@@ -133,7 +133,7 @@ public class BotService
                 case StartSessionCommand:
                     responses.Enqueue(senderData.CurrentExample == null
                         ? GetNewExampleResponse(senderData, database.Examples, database.Answers)
-                        : new BotResponse("The session has already started."));
+                        : new BotResponse(_botOptions.Value.SessionStartedHint));
                     break;
                 
                 case NewExampleCommand:
@@ -248,9 +248,10 @@ public class BotService
         }
     }
 
-    private static InlineKeyboardMarkup CreateStartSessionButton()
+    private InlineKeyboardMarkup CreateStartSessionButton()
     {
-        return new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData(StartSessionCommand));
+        return new InlineKeyboardMarkup(
+            InlineKeyboardButton.WithCallbackData(_botOptions.Value.NewSessionButtonText, StartSessionCommand));
     }
 
     private Task HandleError(ITelegramBotClient botClient, Exception error, CancellationToken cancellationToken)

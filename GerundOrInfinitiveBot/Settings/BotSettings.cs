@@ -9,4 +9,6 @@ public class BotSettings
     public string HelpMessage { get; set; }
     public string SessionResultsPattern { get; set; }
     public string NewSessionHint { get; set; }
+    public string SessionStartedHint { get; set; }
+    public string NewSessionButtonText { get; set; }
 }
