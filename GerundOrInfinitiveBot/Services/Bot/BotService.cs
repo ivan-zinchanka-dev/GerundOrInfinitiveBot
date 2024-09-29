@@ -10,6 +10,7 @@ using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace GerundOrInfinitiveBot.Services.Bot;
 
@@ -44,6 +45,7 @@ public class BotService
             AllowedUpdates = new[]
             {
                 UpdateType.Message,
+                UpdateType.CallbackQuery,
             },
            
             ThrowPendingUpdates = true,
@@ -70,10 +72,13 @@ public class BotService
             switch (update.Type)
             {
                 case UpdateType.Message:
-                {
                     await HandleMessage(botClient, update.Message, cancellationToken);
                     return;
-                }
+                
+                case UpdateType.CallbackQuery: 
+                    await HandleCallbackQuery(botClient, update.CallbackQuery, cancellationToken);
+                    
+                    return;
             }
         }
         catch (Exception exception)
@@ -84,12 +89,21 @@ public class BotService
 
     private async Task HandleMessage(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
     {
-        User sender = message.From;
-        
+        await HandleRequest(botClient, message.From, message.Text, message.Chat, cancellationToken);
+    }
+    
+    private async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callbackQuery, CancellationToken cancellationToken)
+    {
+        await HandleRequest(botClient, callbackQuery.From, callbackQuery.Data, callbackQuery.Message.Chat, cancellationToken);
+    }
+
+    private async Task HandleRequest(ITelegramBotClient botClient, User sender, string text, Chat chat, 
+        CancellationToken cancellationToken)
+    {
         _logger.LogInformation(
-            $"User {sender.FirstName} with id {sender.Id} sent a message: {message.Text}");
+            $"User {sender.FirstName} with id {sender.Id} sent a message: {text}");
         
-        Queue<string> responses = new Queue<string>();
+        Queue<BotResponse> responses = new Queue<BotResponse>();
         
         using (DatabaseService database = await _databaseServiceFactory.CreateDbContextAsync(cancellationToken))
         {
@@ -113,20 +127,20 @@ public class BotService
                 senderData = foundUserData;
             }
             
-            switch (message.Text)
+            switch (text)
             {
                 case StartSessionCommand:
                     responses.Enqueue(senderData.CurrentExample == null
-                        ? HandleNewExample(senderData, database.Examples, database.Answers)
-                        : "The session has already started.");
+                        ? GetNewExampleResponse(senderData, database.Examples, database.Answers)
+                        : new BotResponse("The session has already started."));
                     break;
                 
                 case NewExampleCommand:
-                    responses.Enqueue(HandleNewExample(senderData, database.Examples, database.Answers));
+                    responses.Enqueue(GetNewExampleResponse(senderData, database.Examples, database.Answers));
                     break;
             
                 case HelpCommand:
-                    responses.Enqueue(_botOptions.Value.HelpMessage);
+                    responses.Enqueue(new BotResponse(_botOptions.Value.HelpMessage));
                     break;
             
                 default:
@@ -135,29 +149,27 @@ public class BotService
                     
                     if (senderCurrentExample == null)
                     {
-                        responses.Enqueue(_botOptions.Value.DefaultResponse);
+                        responses.Enqueue(new BotResponse(_botOptions.Value.DefaultResponse));
                     }
-                    else if (IsAnswerCorrect(message, senderCurrentExample))
+                    else if (IsAnswerCorrect(text, senderCurrentExample))
                     {
-                        responses.Enqueue(_botOptions.Value.CorrectAnswerPattern + 
-                                          senderCurrentExample.GetCorrectSentence());
+                        responses.Enqueue(new BotResponse(
+                            _botOptions.Value.CorrectAnswerPattern + senderCurrentExample.GetCorrectSentence()));
                         
-                        database.Answers.Add(
-                            CreateAnswerEntry(sender.Id, senderCurrentExample.Id, true));
+                        database.Answers.Add(CreateAnswerEntry(sender.Id, senderCurrentExample.Id, true));
                         await database.SaveChangesAsync(cancellationToken);
                         
-                        HandleSessions(database, senderData, responses);
+                        responses.Enqueue(GetSessionsResponse(database, senderData));
                     }
                     else
                     {
-                        responses.Enqueue(_botOptions.Value.IncorrectAnswerPattern + 
-                                          senderCurrentExample.GetCorrectSentence());
+                        responses.Enqueue(new BotResponse(
+                            _botOptions.Value.IncorrectAnswerPattern + senderCurrentExample.GetCorrectSentence()));
                         
-                        database.Answers.Add(
-                            CreateAnswerEntry(sender.Id, senderCurrentExample.Id, false));
+                        database.Answers.Add(CreateAnswerEntry(sender.Id, senderCurrentExample.Id, false));
                         await database.SaveChangesAsync(cancellationToken);
                         
-                        HandleSessions(database, senderData, responses);
+                        responses.Enqueue(GetSessionsResponse(database, senderData));
                     }
                     
                     break;
@@ -168,33 +180,36 @@ public class BotService
         
         while (responses.Count != 0)
         {
-            string answerText = responses.Dequeue();
+            BotResponse response = responses.Dequeue();
             
-            await botClient.SendTextMessageAsync(message.Chat.Id, answerText, 
-                cancellationToken: cancellationToken, parseMode: ParseMode.Html);
+            await botClient.SendTextMessageAsync(chat.Id, response.Text, parseMode: ParseMode.Html, 
+                replyMarkup: response.ReplyMarkup, cancellationToken: cancellationToken);
             
             _logger.LogInformation(
-                $"User {sender.FirstName} with id {sender.Id} was sent a response: {answerText}");
+                $"User {sender.FirstName} with id {sender.Id} was sent a response: {response}");
         }
     }
     
-    private static bool IsAnswerCorrect(Message answerMessage, Example example)
+    private static bool IsAnswerCorrect(string answerText, Example example)
     {
-        if (answerMessage == null || answerMessage.Text == null)
+        if (string.IsNullOrEmpty(answerText) || string.IsNullOrWhiteSpace(answerText))
         {
             return false;
         }
 
-        string answer = answerMessage.Text.Trim();
+        string answer = answerText.Trim();
 
         return string.Equals(answer, example.CorrectAnswer, StringComparison.OrdinalIgnoreCase) || 
                string.Equals(answer, example.AlternativeCorrectAnswer, StringComparison.OrdinalIgnoreCase);
     }
 
-    private string HandleNewExample(UserData userData, DbSet<Example> examples, DbSet<Answer> answers)
+    private BotResponse GetNewExampleResponse(UserData userData, DbSet<Example> examples, DbSet<Answer> answers)
     {
         userData.CurrentExample = GetNewExample(userData, examples, answers);
-        return GetNewExampleMessage(userData.CurrentExample);
+        return new BotResponse()
+        {
+            Text = GetNewExampleMessage(userData.CurrentExample)
+        };
     }
     
     private static Example GetNewExample(UserData userData, DbSet<Example> examples, DbSet<Answer> answers)
@@ -213,21 +228,30 @@ public class BotService
         return new Answer(Guid.NewGuid(), userId, exampleId, DateTime.UtcNow, isCorrect);
     }
     
-    private void HandleSessions(DatabaseService database, UserData senderData, Queue<string> responses)
+    private BotResponse GetSessionsResponse(DatabaseService database, UserData senderData)
     {
         SessionService sessionService = new SessionService(database.Answers, _botOptions.Value.SessionResultsPattern);
 
         if (sessionService.TryGetUserSessionResults(senderData.UserId, out string sessionResultsMessage))
         {
-            responses.Enqueue(sessionResultsMessage + _botOptions.Value.NewSessionHint);
             senderData.CurrentExample = null;
+            return new BotResponse()
+            {
+                Text = sessionResultsMessage + _botOptions.Value.NewSessionHint,
+                ReplyMarkup = CreateStartSessionButton(),
+            };
         }
         else
         {
-            responses.Enqueue(HandleNewExample(senderData, database.Examples, database.Answers));
+            return GetNewExampleResponse(senderData, database.Examples, database.Answers);
         }
     }
-    
+
+    private static InlineKeyboardMarkup CreateStartSessionButton()
+    {
+        return new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData(StartSessionCommand));
+    }
+
     private Task HandleError(ITelegramBotClient botClient, Exception error, CancellationToken cancellationToken)
     {
         if (error is ApiRequestException apiRequestException)
@@ -251,10 +275,20 @@ public class BotService
             
         if (update.Type == UpdateType.Message)
         {
-            await botClient.SendTextMessageAsync(update.Message.Chat.Id,
-                $"Internal error!\n<code>{exception}</code>", 
-                cancellationToken: cancellationToken, parseMode: ParseMode.Html);
+            await botClient.SendTextMessageAsync(update.Message.Chat.Id, $"Internal error!\n<code>{exception}</code>", 
+                parseMode: ParseMode.Html, cancellationToken: cancellationToken);
         }
     }
-    
+
+    private struct BotResponse
+    {
+        public string Text { get; set; }
+        public IReplyMarkup ReplyMarkup { get; set; }
+
+        public BotResponse(string text)
+        {
+            Text = text;
+        }
+    }
+
 }
