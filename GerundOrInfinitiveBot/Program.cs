@@ -5,6 +5,7 @@ using GerundOrInfinitiveBot.Services.Reporting;
 using GerundOrInfinitiveBot.Settings;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace GerundOrInfinitiveBot {
@@ -16,29 +17,29 @@ namespace GerundOrInfinitiveBot {
         
         private static async Task Main(string[] args)
         {
-            ConfigurationBuilder configBuilder = new ConfigurationBuilder();
-            configBuilder.SetBasePath(Directory.GetCurrentDirectory());
-            configBuilder.AddJsonFile(AppSettingsFileName);
-            IConfigurationRoot config = configBuilder.Build();
+            IHostApplicationBuilder appBuilder = Host.CreateApplicationBuilder();
 
-            IServiceCollection services = new ServiceCollection();
-            services.AddLogging(builder =>
+            appBuilder.Configuration.SetBasePath(Directory.GetCurrentDirectory());
+            appBuilder.Configuration.AddJsonFile(AppSettingsFileName);
+            
+            appBuilder.Services.AddLogging(builder =>
             {
                 builder
                     .AddConsole()
-                    .AddFile(Path.Combine(Environment.CurrentDirectory, config.GetValue<string>("LogsFileName")));
+                    .AddFile(Path.Combine(Environment.CurrentDirectory, 
+                        appBuilder.Configuration.GetValue<string>("LogsFileName")));
             });
             
-            services.AddOptions();
-            services.Configure<ConnectionSettings>(config.GetSection("ConnectionStrings"));
-            services.Configure<EmailSettings>(config.GetSection("EmailSettings"));
-            services.Configure<BotSettings>(config.GetSection("BotSettings"));
+            appBuilder.Services.AddOptions();
+            appBuilder.Services.Configure<ConnectionSettings>(appBuilder.Configuration.GetSection("ConnectionStrings"));
+            appBuilder.Services.Configure<EmailSettings>(appBuilder.Configuration.GetSection("EmailSettings"));
+            appBuilder.Services.Configure<BotSettings>(appBuilder.Configuration.GetSection("BotSettings"));
             
-            services.AddDbContextFactory<DatabaseService>(lifetime: ServiceLifetime.Singleton);
-            services.AddTransient<ReportService>();
-            services.AddSingleton<BotService>();
+            appBuilder.Services.AddDbContextFactory<DatabaseService>(lifetime: ServiceLifetime.Singleton);
+            appBuilder.Services.AddTransient<ReportService>();
+            appBuilder.Services.AddSingleton<BotService>();
             
-            IServiceProvider serviceProvider = services.BuildServiceProvider();
+            IServiceProvider serviceProvider = appBuilder.Services.BuildServiceProvider();
             
             _botService = serviceProvider.GetRequiredService<BotService>();
             await _botService.Start();
