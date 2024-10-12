@@ -4,12 +4,12 @@ namespace GerundOrInfinitiveBot.Tests.Services.ExamplesParsing;
 
 public class ExamplesParser
 {
-    private const string DataScriptHead= "USE gerund_or_infinitive\nGO\n\nDELETE FROM [Examples]\nGO\n\n";
-    
-    private const string DataRowPattern =
+    private const string DataScriptHead = 
+        "USE gerund_or_infinitive\nGO\n\nDELETE FROM [Examples]\nGO\n\n" + 
         "INSERT INTO [Examples] ([SourceSentence], [UsedWord], [CorrectAnswer], [AlternativeCorrectAnswer])\n" +
-        "VALUES ({0});\n\n";
+        "VALUES\n";
     
+    private const string DataRowPattern = "({0}),\n";
     private const string DataScriptEnd = "\nGO";
     
     private readonly string _inputFileName; 
@@ -48,7 +48,8 @@ public class ExamplesParser
                 }
                 
             }
-
+            
+            dataScript.Remove(dataScript.Length - 2, 1);                                // remove last ',' symbol
             dataScript.Append(DataScriptEnd);
 
             await File.WriteAllTextAsync(outputFilePath, dataScript.ToString());
