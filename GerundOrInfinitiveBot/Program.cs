@@ -19,25 +19,25 @@ namespace GerundOrInfinitiveBot {
         {
             IHostApplicationBuilder appBuilder = Host.CreateApplicationBuilder();
 
-            appBuilder.Configuration.SetBasePath(Directory.GetCurrentDirectory());
-            appBuilder.Configuration.AddJsonFile(AppSettingsFileName);
+            appBuilder.Configuration
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile(AppSettingsFileName);
             
-            appBuilder.Services.AddLogging(builder =>
-            {
-                builder
-                    .AddConsole()
-                    .AddFile(Path.Combine(Environment.CurrentDirectory, 
-                        appBuilder.Configuration.GetValue<string>("LogsFileName")));
-            });
-            
-            appBuilder.Services.AddOptions();
-            appBuilder.Services.Configure<ConnectionSettings>(appBuilder.Configuration.GetSection("ConnectionStrings"));
-            appBuilder.Services.Configure<EmailSettings>(appBuilder.Configuration.GetSection("EmailSettings"));
-            appBuilder.Services.Configure<BotSettings>(appBuilder.Configuration.GetSection("BotSettings"));
-            
-            appBuilder.Services.AddDbContextFactory<DatabaseService>(lifetime: ServiceLifetime.Singleton);
-            appBuilder.Services.AddTransient<ReportService>();
-            appBuilder.Services.AddSingleton<BotService>();
+            appBuilder.Services
+                .AddLogging(builder =>
+                {
+                    builder
+                        .AddConsole()
+                        .AddFile(Path.Combine(Environment.CurrentDirectory, 
+                            appBuilder.Configuration.GetValue<string>("LogsFileName")));
+                })
+                .AddOptions()
+                .Configure<ConnectionSettings>(appBuilder.Configuration.GetSection("ConnectionStrings"))
+                .Configure<EmailSettings>(appBuilder.Configuration.GetSection("EmailSettings"))
+                .Configure<BotSettings>(appBuilder.Configuration.GetSection("BotSettings"))
+                .AddDbContextFactory<DatabaseService>(lifetime: ServiceLifetime.Singleton)
+                .AddTransient<ReportService>()
+                .AddSingleton<BotService>();
             
             IServiceProvider serviceProvider = appBuilder.Services.BuildServiceProvider();
             
