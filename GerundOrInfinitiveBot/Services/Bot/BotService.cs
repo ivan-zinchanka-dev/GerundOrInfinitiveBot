@@ -52,11 +52,11 @@ public class BotService
         };
     }
 
-    public async Task Start()
+    public async Task StartAsync()
     {
         using (CancellationTokenSource cts = new CancellationTokenSource())
         {
-            _botClient.StartReceiving(HandleUpdate, HandleError, _receiverOptions, cts.Token);
+            _botClient.StartReceiving(HandleUpdateAsync, HandleError, _receiverOptions, cts.Token);
         
             User me = await _botClient.GetMeAsync(cancellationToken: cts.Token);
             _logger.LogInformation($"{me.FirstName} is launched");
@@ -65,7 +65,7 @@ public class BotService
         }
     }
 
-    private async Task HandleUpdate(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+    private async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
     {
         try
         {
@@ -78,12 +78,12 @@ public class BotService
 
             if (message != null)
             {
-                await HandleMessage(botClient, message, cancellationToken);
+                await HandleMessageAsync(botClient, message, cancellationToken);
             }
         }
         catch (Exception exception)
         {
-            await HandleException(botClient, update, exception, cancellationToken);
+            await HandleExceptionAsync(botClient, update, exception, cancellationToken);
         }
     }
 
@@ -97,7 +97,7 @@ public class BotService
         };
     }
 
-    private async Task HandleMessage(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+    private async Task HandleMessageAsync(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
     {
         User sender = message.From;
         
@@ -268,7 +268,7 @@ public class BotService
         return Task.CompletedTask;
     }
     
-    private async Task HandleException(ITelegramBotClient botClient, Update update, Exception exception, 
+    private async Task HandleExceptionAsync(ITelegramBotClient botClient, Update update, Exception exception, 
         CancellationToken cancellationToken)
     {
         _logger.LogError($"Internal error!\n{exception}");

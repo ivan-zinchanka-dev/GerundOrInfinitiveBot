@@ -42,7 +42,7 @@ namespace GerundOrInfinitiveBot {
             IServiceProvider serviceProvider = appBuilder.Services.BuildServiceProvider();
             
             _botService = serviceProvider.GetRequiredService<BotService>();
-            await _botService.Start();
+            await _botService.StartAsync();
         }
     }
 }
