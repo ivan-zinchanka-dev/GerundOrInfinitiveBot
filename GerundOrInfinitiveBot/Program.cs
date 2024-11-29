@@ -1,12 +1,12 @@
 ﻿using GerundOrInfinitiveBot.Services.Bot;
 using GerundOrInfinitiveBot.Services.Database;
-using GerundOrInfinitiveBot.Services.FileLogging;
 using GerundOrInfinitiveBot.Services.Reporting;
 using GerundOrInfinitiveBot.Settings;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace GerundOrInfinitiveBot {
     
@@ -17,32 +17,44 @@ namespace GerundOrInfinitiveBot {
         
         private static async Task Main(string[] args)
         {
-            IHostApplicationBuilder appBuilder = Host.CreateApplicationBuilder();
+            try
+            {
+                IHostApplicationBuilder appBuilder = Host.CreateApplicationBuilder();
 
-            appBuilder.Configuration
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile(AppSettingsFileName);
-            
-            appBuilder.Services
-                .AddLogging(builder =>
-                {
-                    builder
-                        .AddConsole()
-                        .AddFile(Path.Combine(Environment.CurrentDirectory, 
-                            appBuilder.Configuration.GetValue<string>("LogsFileName")));
-                })
-                .AddOptions()
-                .Configure<ConnectionSettings>(appBuilder.Configuration.GetSection("ConnectionStrings"))
-                .Configure<EmailSettings>(appBuilder.Configuration.GetSection("EmailSettings"))
-                .Configure<BotSettings>(appBuilder.Configuration.GetSection("BotSettings"))
-                .AddDbContextFactory<DatabaseService>(lifetime: ServiceLifetime.Singleton)
-                .AddTransient<ReportService>()
-                .AddSingleton<BotService>();
-            
-            IServiceProvider serviceProvider = appBuilder.Services.BuildServiceProvider();
-            
-            _botService = serviceProvider.GetRequiredService<BotService>();
-            await _botService.StartAsync();
+                appBuilder.Configuration
+                    .SetBasePath(Directory.GetCurrentDirectory())
+                    .AddJsonFile(AppSettingsFileName);
+
+                Log.Logger = new LoggerConfiguration()
+                    .ReadFrom.Configuration(appBuilder.Configuration)
+                    .CreateLogger();
+
+                appBuilder.Logging
+                    .ClearProviders()
+                    .AddSerilog(Log.Logger);
+
+                appBuilder.Services
+                    .AddOptions()
+                    .Configure<ConnectionSettings>(appBuilder.Configuration.GetSection("ConnectionStrings"))
+                    .Configure<EmailSettings>(appBuilder.Configuration.GetSection("EmailSettings"))
+                    .Configure<BotSettings>(appBuilder.Configuration.GetSection("BotSettings"))
+                    .AddDbContextFactory<DatabaseService>(lifetime: ServiceLifetime.Singleton)
+                    .AddTransient<ReportService>()
+                    .AddSingleton<BotService>();
+
+                IServiceProvider serviceProvider = appBuilder.Services.BuildServiceProvider();
+
+                _botService = serviceProvider.GetRequiredService<BotService>();
+                await _botService.StartAsync();
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal(ex, "An unhandled exception occured");
+            }
+            finally
+            {
+                await Log.CloseAndFlushAsync();
+            }
         }
     }
 }
