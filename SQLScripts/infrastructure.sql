@@ -104,6 +104,9 @@ GO
 DELETE FROM [Examples]
 GO
 
+DELETE FROM [Answers]
+GO
+
 DELETE FROM [UserData]
 GO
 
