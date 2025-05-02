@@ -25,6 +25,7 @@ public class BotService
     private readonly IOptions<ConnectionSettings> _connectionOptions;
     private readonly IOptions<BotSettings> _botOptions;
     private readonly ReportService _reportService;
+    private readonly ImpressionService _impressionService;
     private readonly IDbContextFactory<DatabaseService> _databaseServiceFactory;
     private readonly ILogger<BotService> _logger;
     
@@ -35,15 +36,17 @@ public class BotService
         IOptions<ConnectionSettings> connectionOptions, 
         IOptions<BotSettings> botOptions, 
         ReportService reportService, 
+        ImpressionService impressionService,
         IDbContextFactory<DatabaseService> databaseServiceFactory, 
         ILogger<BotService> logger)
     {
         _connectionOptions = connectionOptions;
         _botOptions = botOptions;
         _reportService = reportService;
+        _impressionService = impressionService;
         _databaseServiceFactory = databaseServiceFactory;
         _logger = logger;
-        
+
         _botClient = new TelegramBotClient(_connectionOptions.Value.TelegramConnectionToken);
         _receiverOptions = new ReceiverOptions
         {
@@ -205,10 +208,9 @@ public class BotService
         return new BotResponse(GetNewExampleMessage(userData.CurrentExample));
     }
     
-    private static Example GetNewExample(UserData userData, DbSet<Example> examples, DbSet<Answer> answers)
+    private Example GetNewExample(UserData userData, DbSet<Example> examples, DbSet<Answer> answers)
     {
-        ImpressionService impressionService = new ImpressionService(answers);
-        return impressionService.GetExampleForUser(userData.UserId, examples.ToList());
+        return _impressionService.GetExampleForUser(userData.UserId, examples, answers);
     }
 
     private string GetNewExampleMessage(Example example)

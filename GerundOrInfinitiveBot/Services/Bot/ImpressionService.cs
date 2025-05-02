@@ -4,23 +4,17 @@ using GerundOrInfinitiveBot.Models.DataBaseObjects;
 
 namespace GerundOrInfinitiveBot.Services.Bot;
 
+// TODO Async
 public class ImpressionService
 {
-    private readonly IEnumerable<Answer> _answers;
-    
-    public ImpressionService(IEnumerable<Answer> answers)
+    public Example GetExampleForUser(long userId, IQueryable<Example> allExamples, IQueryable<Answer> allAnswers)
     {
-        _answers = answers;
-    }
-    
-    public Example GetExampleForUser(long userId, List<Example> allExamples)
-    {
-        Debug.Assert(_answers != null);
+        Debug.Assert(allAnswers != null);
         Debug.Assert(allExamples != null);
         
-        IEnumerable<int> recordedExampleIds = _answers
+        IQueryable<int> recordedExampleIds = allAnswers
             .Select(answer => answer.ExampleId);
-        
+
         List<Example> zeroImpressionExamples = allExamples
             .Where(example => !recordedExampleIds.Contains(example.Id))
             .ToList();
@@ -33,14 +27,14 @@ public class ImpressionService
         }
         else
         {
-            int selectedExampleId = GetLowestImpressionExampleIdForUser(userId);
-            return allExamples.Find(example => example.Id == selectedExampleId);
+            int selectedExampleId = GetLowestImpressionExampleIdForUser(userId, allAnswers);
+            return allExamples.FirstOrDefault(example => example.Id == selectedExampleId);
         }
     }
 
-    private int GetLowestImpressionExampleIdForUser(long userId)
+    private int GetLowestImpressionExampleIdForUser(long userId, IQueryable<Answer> allAnswers)
     {
-        var records = _answers
+        IQueryable<ExampleImpressionRecord> records = allAnswers
             .Where(answer => answer.UserId == userId)
             .GroupBy(answer => answer.ExampleId)
             .Select(group => new ExampleImpressionRecord(group.Key, group.Count()));
@@ -59,7 +53,7 @@ public class ImpressionService
         }
         else
         {
-            Random random = new Random();
+            var random = new Random();
             return lowestImpressionRecords[random.Next(0, lowestImpressionRecords.Count)].ExampleId;
         }
     }
