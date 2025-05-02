@@ -1,4 +1,6 @@
-﻿using GerundOrInfinitiveBot.Models.DataBaseObjects;
+﻿using GerundOrInfinitiveBot.Extensions;
+using GerundOrInfinitiveBot.Models;
+using GerundOrInfinitiveBot.Models.DataBaseObjects;
 using GerundOrInfinitiveBot.Services.Database;
 using GerundOrInfinitiveBot.Services.Reporting;
 using GerundOrInfinitiveBot.Settings;
@@ -57,7 +59,7 @@ public class BotService
 
     public async Task StartAsync()
     {
-        using (CancellationTokenSource cts = new CancellationTokenSource())
+        using (var cts = new CancellationTokenSource())
         {
             _botClient.StartReceiving(HandleUpdateAsync, HandleError, _receiverOptions, cts.Token);
         
@@ -75,7 +77,7 @@ public class BotService
             Message message = update.Type switch
             {
                 UpdateType.Message => update.Message,
-                UpdateType.CallbackQuery => QueryToMessage(update.CallbackQuery),
+                UpdateType.CallbackQuery => update.CallbackQuery.ToMessage(),
                 _ => null
             };
 
@@ -90,16 +92,6 @@ public class BotService
         }
     }
 
-    private static Message QueryToMessage(CallbackQuery callbackQuery)
-    {
-        return new Message()
-        {
-            From = callbackQuery.From,
-            Text = callbackQuery.Data,
-            Chat = callbackQuery.Message.Chat
-        };
-    }
-
     private async Task HandleMessageAsync(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
     {
         User sender = message.From;
@@ -107,7 +99,7 @@ public class BotService
         _logger.LogInformation(
             $"User {sender.FirstName} with id {sender.Id} sent a message: {message.Text}");
         
-        Queue<BotResponse> responses = new Queue<BotResponse>();
+        var responses = new Queue<BotResponse>();
         
         using (DatabaseService database = await _databaseServiceFactory.CreateDbContextAsync(cancellationToken))
         {
@@ -210,10 +202,7 @@ public class BotService
     private BotResponse GetNewExampleResponse(UserData userData, DbSet<Example> examples, DbSet<Answer> answers)
     {
         userData.CurrentExample = GetNewExample(userData, examples, answers);
-        return new BotResponse()
-        {
-            Text = GetNewExampleMessage(userData.CurrentExample)
-        };
+        return new BotResponse(GetNewExampleMessage(userData.CurrentExample));
     }
     
     private static Example GetNewExample(UserData userData, DbSet<Example> examples, DbSet<Answer> answers)
@@ -239,11 +228,7 @@ public class BotService
         if (sessionService.TryGetUserSessionResults(senderData.UserId, out string sessionResultsMessage))
         {
             senderData.CurrentExample = null;
-            return new BotResponse()
-            {
-                Text = sessionResultsMessage + _botOptions.Value.NewSessionHint,
-                ReplyMarkup = CreateStartSessionButton(),
-            };
+            return new BotResponse(sessionResultsMessage + _botOptions.Value.NewSessionHint, CreateStartSessionButton());
         }
         else
         {
@@ -284,16 +269,4 @@ public class BotService
                 parseMode: ParseMode.Html, cancellationToken: cancellationToken);
         }
     }
-
-    private struct BotResponse
-    {
-        public string Text { get; set; }
-        public IReplyMarkup ReplyMarkup { get; set; }
-
-        public BotResponse(string text)
-        {
-            Text = text;
-        }
-    }
-
 }
