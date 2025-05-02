@@ -29,8 +29,11 @@ public class BotService
     private readonly ITelegramBotClient _botClient;
     private readonly ReceiverOptions _receiverOptions;
     
-    public BotService(IOptions<ConnectionSettings> connectionOptions, IOptions<BotSettings> botOptions, 
-        ReportService reportService, IDbContextFactory<DatabaseService> databaseServiceFactory, 
+    public BotService(
+        IOptions<ConnectionSettings> connectionOptions, 
+        IOptions<BotSettings> botOptions, 
+        ReportService reportService, 
+        IDbContextFactory<DatabaseService> databaseServiceFactory, 
         ILogger<BotService> logger)
     {
         _connectionOptions = connectionOptions;
@@ -187,7 +190,7 @@ public class BotService
                 replyMarkup: response.ReplyMarkup, cancellationToken: cancellationToken);
             
             _logger.LogInformation(
-                $"User {sender.FirstName} with id {sender.Id} was sent a response: {response}");
+                $"User {sender.FirstName} with id {sender.Id} was sent a response: {response.Text}");
         }
     }
     
