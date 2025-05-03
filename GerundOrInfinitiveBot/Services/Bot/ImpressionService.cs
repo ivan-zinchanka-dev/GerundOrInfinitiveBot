@@ -4,7 +4,6 @@ using GerundOrInfinitiveBot.Models.DataBaseObjects;
 
 namespace GerundOrInfinitiveBot.Services.Bot;
 
-// TODO Async
 public class ImpressionService
 {
     public Example GetExampleForUser(long userId, IQueryable<Example> allExamples, IQueryable<Answer> allAnswers)
@@ -15,15 +14,12 @@ public class ImpressionService
         IQueryable<int> recordedExampleIds = allAnswers
             .Select(answer => answer.ExampleId);
 
-        List<Example> zeroImpressionExamples = allExamples
-            .Where(example => !recordedExampleIds.Contains(example.Id))
-            .ToList();
+        IQueryable<Example> zeroImpressionExamples = allExamples
+            .Where(example => !recordedExampleIds.Contains(example.Id));
         
-        if (zeroImpressionExamples.Count > 0)
+        if (zeroImpressionExamples.Any())
         {
-            Random random = new Random();
-            int selectedExampleId = random.Next(0, zeroImpressionExamples.Count);
-            return zeroImpressionExamples[selectedExampleId];
+            return GetRandomExample(zeroImpressionExamples.ToList());
         }
         else
         {
@@ -47,15 +43,30 @@ public class ImpressionService
             .Where(record => record.ImpressionCount == minExpressionsCount)
             .ToList();
 
-        if (lowestImpressionRecords.Count == 1)
-        {
-            return lowestImpressionRecords[0].ExampleId;
-        }
-        else
-        {
-            var random = new Random();
-            return lowestImpressionRecords[random.Next(0, lowestImpressionRecords.Count)].ExampleId;
-        }
+        return GetRandomExampleImpressionRecord(lowestImpressionRecords).ExampleId;
     }
+    
+    private Example GetRandomExample(List<Example> examples)
+    {
+        if (examples.Count == 1)
+        {
+            return examples[0];
+        }
 
+        var random = new Random();
+        int selectedExampleId = random.Next(0, examples.Count);
+        return examples[selectedExampleId];
+    }
+    
+    private ExampleImpressionRecord GetRandomExampleImpressionRecord(List<ExampleImpressionRecord> records)
+    {
+        if (records.Count == 1)
+        {
+            return records[0];
+        }
+
+        var random = new Random();
+        int selectedExampleId = random.Next(0, records.Count);
+        return records[selectedExampleId];
+    }
 }
