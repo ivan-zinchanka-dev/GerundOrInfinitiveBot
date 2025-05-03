@@ -26,6 +26,7 @@ public class BotService
     private readonly IOptions<BotSettings> _botOptions;
     private readonly ReportService _reportService;
     private readonly ImpressionService _impressionService;
+    private readonly SessionService _sessionService;
     private readonly IDbContextFactory<DatabaseService> _databaseServiceFactory;
     private readonly ILogger<BotService> _logger;
     
@@ -37,6 +38,7 @@ public class BotService
         IOptions<BotSettings> botOptions, 
         ReportService reportService, 
         ImpressionService impressionService,
+        SessionService sessionService,
         IDbContextFactory<DatabaseService> databaseServiceFactory, 
         ILogger<BotService> logger)
     {
@@ -44,6 +46,7 @@ public class BotService
         _botOptions = botOptions;
         _reportService = reportService;
         _impressionService = impressionService;
+        _sessionService = sessionService;
         _databaseServiceFactory = databaseServiceFactory;
         _logger = logger;
 
@@ -225,9 +228,13 @@ public class BotService
     
     private async Task<BotResponse> GetSessionsResponseAsync(DatabaseService database, UserData senderData)
     {
-        SessionService sessionService = new SessionService(database.Answers, _botOptions.Value.SessionResultsPattern);
-
-        if (sessionService.TryGetUserSessionResults(senderData.UserId, out string sessionResultsMessage))
+        string sessionResultsMessage = await _sessionService.GetUserSessionResultsMessageAsync(
+            senderData.UserId, 
+            database.Answers, 
+            _botOptions.Value.SessionResultsPattern, 
+            _botOptions.Value.ExamplesPerSession);
+        
+        if (sessionResultsMessage != null)
         {
             senderData.CurrentExample = null;
             return new BotResponse(sessionResultsMessage + _botOptions.Value.NewSessionHint, CreateStartSessionButton());

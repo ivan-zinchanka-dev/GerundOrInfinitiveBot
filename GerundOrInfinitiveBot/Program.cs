@@ -38,9 +38,10 @@ namespace GerundOrInfinitiveBot {
                     .Configure<ConnectionSettings>(appBuilder.Configuration.GetSection("ConnectionStrings"))
                     .Configure<EmailSettings>(appBuilder.Configuration.GetSection("EmailSettings"))
                     .Configure<BotSettings>(appBuilder.Configuration.GetSection("BotSettings"))
-                    .AddDbContextFactory<DatabaseService>(lifetime: ServiceLifetime.Singleton)
                     .AddTransient<ReportService>()
                     .AddTransient<ImpressionService>()
+                    .AddTransient<SessionService>()
+                    .AddDbContextFactory<DatabaseService>(lifetime: ServiceLifetime.Singleton)
                     .AddSingleton<BotService>();
 
                 IServiceProvider serviceProvider = appBuilder.Services.BuildServiceProvider();

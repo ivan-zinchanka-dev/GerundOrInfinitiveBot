@@ -1,62 +1,60 @@
 ﻿using System.Diagnostics;
 using GerundOrInfinitiveBot.Models.DataBaseObjects;
+using Microsoft.EntityFrameworkCore;
 
 namespace GerundOrInfinitiveBot.Services.Bot;
 
 public class SessionService
 {
-    private const int ExamplesPerSession = 10;
-    
-    private readonly IEnumerable<Answer> _answers;
-    private readonly string _sessionResultsMsgPattern;
-    
-    public SessionService(IEnumerable<Answer> answers, string sessionResultsMsgPattern)
+    public async Task<bool> IsUserSessionCompletedAsync(
+        long userId, 
+        IQueryable<Answer> answers, 
+        int examplesPerSession = 10)
     {
-        _answers = answers;
-        _sessionResultsMsgPattern = sessionResultsMsgPattern;
-    }
-
-    public bool TryGetUserSessionResults(long userId, out string sessionResultsMessage)
-    {
-        Debug.Assert(_answers != null);
-        
-        if (IsUserSessionCompleted(userId))
-        {
-            sessionResultsMessage = GetUserSessionResultsMessage(userId);
-            return true;
-        }
-        else
-        {
-            sessionResultsMessage = null;
-            return false;
-        }
-    }
-
-    private bool IsUserSessionCompleted(long userId)
-    {
-        int userAnswersCount = _answers.Count(answer => answer.UserId == userId);
+        int userAnswersCount = await answers.CountAsync(answer => answer.UserId == userId);
 
         if (userAnswersCount == 0)
         {
             return false;
         }
 
-        return userAnswersCount % ExamplesPerSession == 0;
+        return userAnswersCount % examplesPerSession == 0;
     }
 
-    private string GetUserSessionResultsMessage(long userId)
+    public async Task<string> GetUserSessionResultsMessageAsync(
+        long userId, 
+        IQueryable<Answer> answers, 
+        string sessionResultsMessagePattern, 
+        int examplesPerSession = 10)
     {
-        Debug.Assert(!string.IsNullOrEmpty(_sessionResultsMsgPattern));
+        Debug.Assert(answers != null);
         
-        IEnumerable<Answer> sessionAnswers = _answers
+        if (await IsUserSessionCompletedAsync(userId, answers))
+        {
+            return await GetUserSessionResultsMessage(userId, answers, sessionResultsMessagePattern, examplesPerSession);
+        }
+        else
+        {
+            return null;
+        }
+    }
+    
+    private async Task<string> GetUserSessionResultsMessage(
+        long userId, 
+        IQueryable<Answer> answers, 
+        string sessionResultsMessagePattern,
+        int examplesPerSession = 10)
+    {
+        Debug.Assert(!string.IsNullOrEmpty(sessionResultsMessagePattern));
+        
+        IQueryable<Answer> sessionAnswers = answers
             .Where(answer => answer.UserId == userId)
             .OrderByDescending(answer => answer.ReceivingTime)
-            .Take(ExamplesPerSession);
+            .Take(examplesPerSession);
         
-        int correctAnswersCount = sessionAnswers.Count(answer => answer.Result);
-        int allAnswersCount = sessionAnswers.Count();
+        int correctAnswersCount = await sessionAnswers.CountAsync(answer => answer.Result);
+        int allAnswersCount = await sessionAnswers.CountAsync();
 
-        return string.Format(_sessionResultsMsgPattern, correctAnswersCount, allAnswersCount);
+        return string.Format(sessionResultsMessagePattern, correctAnswersCount, allAnswersCount);
     }
-
 }

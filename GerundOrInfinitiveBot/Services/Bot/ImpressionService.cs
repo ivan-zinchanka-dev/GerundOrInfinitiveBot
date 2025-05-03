@@ -7,7 +7,10 @@ namespace GerundOrInfinitiveBot.Services.Bot;
 
 public class ImpressionService
 {
-    public async Task<Example> GetExampleForUserAsync(long userId, IQueryable<Example> allExamples, IQueryable<Answer> allAnswers)
+    public async Task<Example> GetExampleForUserAsync( 
+        long userId, 
+        IQueryable<Example> allExamples, 
+        IQueryable<Answer> allAnswers)
     {
         Debug.Assert(allAnswers != null);
         Debug.Assert(allExamples != null);

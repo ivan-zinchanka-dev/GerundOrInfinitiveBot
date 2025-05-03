@@ -8,6 +8,7 @@ public class BotSettings
     public string IncorrectAnswerPattern { get; set; }
     public string HelpMessage { get; set; }
     public string SessionResultsPattern { get; set; }
+    public int ExamplesPerSession { get; set; }
     public string NewSessionHint { get; set; }
     public string SessionStartedHint { get; set; }
     public string NewSessionButtonText { get; set; }
