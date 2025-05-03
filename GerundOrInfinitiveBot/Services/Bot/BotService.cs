@@ -130,12 +130,12 @@ public class BotService
             {
                 case StartSessionCommand:
                     responses.Enqueue(senderData.CurrentExample == null
-                        ? GetNewExampleResponse(senderData, database.Examples, database.Answers)
+                        ? await GetNewExampleResponseAsync(senderData, database.Examples, database.Answers)
                         : new BotResponse(_botOptions.Value.SessionStartedHint));
                     break;
                 
                 case NewExampleCommand:
-                    responses.Enqueue(GetNewExampleResponse(senderData, database.Examples, database.Answers));
+                    responses.Enqueue(await GetNewExampleResponseAsync(senderData, database.Examples, database.Answers));
                     break;
             
                 case HelpCommand:
@@ -158,7 +158,7 @@ public class BotService
                         database.Answers.Add(CreateAnswerEntry(sender.Id, senderCurrentExample.Id, true));
                         await database.SaveChangesAsync(cancellationToken);
                         
-                        responses.Enqueue(GetSessionsResponse(database, senderData));
+                        responses.Enqueue(await GetSessionsResponseAsync(database, senderData));
                     }
                     else
                     {
@@ -168,7 +168,7 @@ public class BotService
                         database.Answers.Add(CreateAnswerEntry(sender.Id, senderCurrentExample.Id, false));
                         await database.SaveChangesAsync(cancellationToken);
                         
-                        responses.Enqueue(GetSessionsResponse(database, senderData));
+                        responses.Enqueue(await GetSessionsResponseAsync(database, senderData));
                     }
                     
                     break;
@@ -201,29 +201,29 @@ public class BotService
         return string.Equals(answer, example.CorrectAnswer, StringComparison.OrdinalIgnoreCase) || 
                string.Equals(answer, example.AlternativeCorrectAnswer, StringComparison.OrdinalIgnoreCase);
     }
-
-    private BotResponse GetNewExampleResponse(UserData userData, DbSet<Example> examples, DbSet<Answer> answers)
+    
+    private static Answer CreateAnswerEntry(long userId, int exampleId, bool isCorrect)
     {
-        userData.CurrentExample = GetNewExample(userData, examples, answers);
+        return new Answer(Guid.NewGuid(), userId, exampleId, DateTime.UtcNow, isCorrect);
+    }
+
+    private async Task<BotResponse> GetNewExampleResponseAsync(UserData userData, DbSet<Example> examples, DbSet<Answer> answers)
+    {
+        userData.CurrentExample = await GetNewExampleAsync(userData, examples, answers);
         return new BotResponse(GetNewExampleMessage(userData.CurrentExample));
     }
     
-    private Example GetNewExample(UserData userData, DbSet<Example> examples, DbSet<Answer> answers)
+    private Task<Example> GetNewExampleAsync(UserData userData, DbSet<Example> examples, DbSet<Answer> answers)
     {
-        return _impressionService.GetExampleForUser(userData.UserId, examples, answers);
+        return _impressionService.GetExampleForUserAsync(userData.UserId, examples, answers);
     }
 
     private string GetNewExampleMessage(Example example)
     {
         return string.Format(_botOptions.Value.TaskTextPattern, example.UsedWord, example.SourceSentence);
     }
-
-    private static Answer CreateAnswerEntry(long userId, int exampleId, bool isCorrect)
-    {
-        return new Answer(Guid.NewGuid(), userId, exampleId, DateTime.UtcNow, isCorrect);
-    }
     
-    private BotResponse GetSessionsResponse(DatabaseService database, UserData senderData)
+    private async Task<BotResponse> GetSessionsResponseAsync(DatabaseService database, UserData senderData)
     {
         SessionService sessionService = new SessionService(database.Answers, _botOptions.Value.SessionResultsPattern);
 
@@ -234,7 +234,7 @@ public class BotService
         }
         else
         {
-            return GetNewExampleResponse(senderData, database.Examples, database.Answers);
+            return await GetNewExampleResponseAsync(senderData, database.Examples, database.Answers);
         }
     }
 

@@ -1,12 +1,13 @@
 ﻿using System.Diagnostics;
 using GerundOrInfinitiveBot.Models;
 using GerundOrInfinitiveBot.Models.DataBaseObjects;
+using Microsoft.EntityFrameworkCore;
 
 namespace GerundOrInfinitiveBot.Services.Bot;
 
 public class ImpressionService
 {
-    public Example GetExampleForUser(long userId, IQueryable<Example> allExamples, IQueryable<Answer> allAnswers)
+    public async Task<Example> GetExampleForUserAsync(long userId, IQueryable<Example> allExamples, IQueryable<Answer> allAnswers)
     {
         Debug.Assert(allAnswers != null);
         Debug.Assert(allExamples != null);
@@ -16,32 +17,35 @@ public class ImpressionService
 
         IQueryable<Example> zeroImpressionExamples = allExamples
             .Where(example => !recordedExampleIds.Contains(example.Id));
+
+        bool anyZeroImpressionExamples = await zeroImpressionExamples.AnyAsync();
         
-        if (zeroImpressionExamples.Any())
+        if (anyZeroImpressionExamples)
         {
-            return GetRandomExample(zeroImpressionExamples.ToList());
+            List<Example> castExamples = await zeroImpressionExamples.ToListAsync();
+            return GetRandomExample(castExamples);
         }
         else
         {
-            int selectedExampleId = GetLowestImpressionExampleIdForUser(userId, allAnswers);
-            return allExamples.FirstOrDefault(example => example.Id == selectedExampleId);
+            int selectedExampleId = await GetLowestImpressionExampleIdForUser(userId, allAnswers);
+            return await allExamples.FirstOrDefaultAsync(example => example.Id == selectedExampleId);
         }
     }
 
-    private int GetLowestImpressionExampleIdForUser(long userId, IQueryable<Answer> allAnswers)
+    private async Task<int> GetLowestImpressionExampleIdForUser(long userId, IQueryable<Answer> allAnswers)
     {
         IQueryable<ExampleImpressionRecord> records = allAnswers
             .Where(answer => answer.UserId == userId)
             .GroupBy(answer => answer.ExampleId)
             .Select(group => new ExampleImpressionRecord(group.Key, group.Count()));
 
-        int minExpressionsCount = records
-            .MinBy(record => record.ImpressionCount)
-            .ImpressionCount;
+        int minExpressionsCount = await records
+            .Select(record => record.ImpressionCount)
+            .MinAsync();
 
-        List<ExampleImpressionRecord> lowestImpressionRecords = records
+        List<ExampleImpressionRecord> lowestImpressionRecords = await records
             .Where(record => record.ImpressionCount == minExpressionsCount)
-            .ToList();
+            .ToListAsync();
 
         return GetRandomExampleImpressionRecord(lowestImpressionRecords).ExampleId;
     }
