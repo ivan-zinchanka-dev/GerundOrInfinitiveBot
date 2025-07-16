@@ -1,0 +1,16 @@
+﻿services:
+  gerund_or_infinitive_bot:
+    image: gerund_or_infinitive_bot
+    build:
+      context: .
+      dockerfile: GerundOrInfinitiveBot/Dockerfile
+    depends_on:
+    - sql_server
+      
+  sql_server:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      SA_PASSWORD: "YourStrong!Password"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"      
