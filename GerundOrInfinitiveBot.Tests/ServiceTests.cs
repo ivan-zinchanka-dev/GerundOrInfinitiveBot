@@ -20,7 +20,7 @@ public class ServiceTests
         configBuilder.AddJsonFile(AppSettingsFileName, false, true);
         IConfigurationRoot configurationRoot = configBuilder.Build();
         
-        _emailSettings = configurationRoot.GetSection("EmailSettings").Get<EmailSettings>();
+        _emailSettings = configurationRoot.GetSection(nameof(EmailSettings)).Get<EmailSettings>();
     }
 
     [Test]

@@ -3,9 +3,9 @@ using GerundOrInfinitiveBot.Models.DataBaseObjects;
 
 namespace GerundOrInfinitiveBot.Services.DataLoading;
 
-internal class ExamplesReader
+public class ExamplesReader
 {
-    private const string SourceDataFileName = "source.edm";
+    private const string SourceDataFileName = "source.exm";
     
     public async Task<IEnumerable<Example>> UploadExamplesAsync()
     {

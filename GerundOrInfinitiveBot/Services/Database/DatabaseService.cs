@@ -16,10 +16,14 @@ public class DatabaseService : DbContext
     public DbSet<UserData> UserData { get; private set; }
     public DbSet<Answer> Answers { get; private set; }
 
-    public DatabaseService(IOptions<ConnectionSettings> options, ILogger<DatabaseService> logger)
+    public DatabaseService(
+        IOptions<ConnectionSettings> options, 
+        ILogger<DatabaseService> logger)
     {
         _options = options;
         _logger = logger;
+        
+        Database.EnsureCreated();
     }
     
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -30,18 +34,48 @@ public class DatabaseService : DbContext
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Example>()
-            .HasKey(example => example.Id);
+        modelBuilder.Entity<Example>(example =>
+        {
+            example
+                .HasKey(ex => ex.Id);
 
+            /*example
+                .Property(ex => ex.Id)
+                .IsRequired()
+                .ValueGeneratedOnAdd();*/
+            
+            example
+                .Property(ex => ex.SourceSentence)
+                .HasMaxLength(100);
+
+            example
+                .Property(ex => ex.UsedWord)
+                .HasMaxLength(30);
+            
+            example
+                .Property(ex => ex.CorrectAnswer)
+                .HasMaxLength(30);
+            
+            example
+                .Property(ex => ex.AlternativeCorrectAnswer)
+                .HasMaxLength(30);
+        });
+        
         modelBuilder.Entity<UserData>(userData =>
         {
             userData
                 .HasKey(user => user.UserId);
+
+            userData
+                .Property(user => user.UserId)
+                .IsRequired()
+                .ValueGeneratedNever();
             
             userData
                 .HasOne(user => user.CurrentExample)
                 .WithMany(example => example.CurrentUsers)
-                .HasForeignKey(user => user.CurrentExampleId);
+                .HasForeignKey(user => user.CurrentExampleId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Answer>(answer =>
@@ -49,15 +83,26 @@ public class DatabaseService : DbContext
             answer
                 .HasKey(ans => ans.Id);
 
+            answer.Property(ans => ans.Id)
+                .IsRequired()
+                .HasDefaultValueSql("NEWID()");
+
+            answer.Property(ans => ans.UserId).IsRequired();
+            answer.Property(ans => ans.ExampleId).IsRequired();
+            answer.Property(ans => ans.ReceivingTime).IsRequired();
+            answer.Property(ans => ans.Result).IsRequired();
+            
             answer
                 .HasOne(ans => ans.UserData)
                 .WithMany(user => user.Answers)
-                .HasForeignKey(ans => ans.UserId);
+                .HasForeignKey(ans => ans.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             answer
                 .HasOne(ans => ans.Example)
                 .WithMany(example => example.AnswersWithIt)
-                .HasForeignKey(ans => ans.ExampleId);
+                .HasForeignKey(ans => ans.ExampleId)
+                .OnDelete(DeleteBehavior.Cascade);
             
         });
     }

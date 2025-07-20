@@ -2,6 +2,7 @@
 using GerundOrInfinitiveBot.Models;
 using GerundOrInfinitiveBot.Models.DataBaseObjects;
 using GerundOrInfinitiveBot.Services.Database;
+using GerundOrInfinitiveBot.Services.DataLoading;
 using GerundOrInfinitiveBot.Services.Reporting;
 using GerundOrInfinitiveBot.Settings;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,7 @@ public class BotService
 
     private readonly IOptions<ConnectionSettings> _connectionOptions;
     private readonly IOptions<BotSettings> _botOptions;
+    private readonly ExamplesReader _examplesReader;
     private readonly ReportService _reportService;
     private readonly ImpressionService _impressionService;
     private readonly SessionService _sessionService;
@@ -35,7 +37,8 @@ public class BotService
     
     public BotService(
         IOptions<ConnectionSettings> connectionOptions, 
-        IOptions<BotSettings> botOptions, 
+        IOptions<BotSettings> botOptions,
+        ExamplesReader examplesReader,
         ReportService reportService, 
         ImpressionService impressionService,
         SessionService sessionService,
@@ -44,12 +47,13 @@ public class BotService
     {
         _connectionOptions = connectionOptions;
         _botOptions = botOptions;
+        _examplesReader = examplesReader;
         _reportService = reportService;
         _impressionService = impressionService;
         _sessionService = sessionService;
         _databaseServiceFactory = databaseServiceFactory;
         _logger = logger;
-
+        
         _botClient = new TelegramBotClient(_connectionOptions.Value.TelegramConnectionToken);
         _receiverOptions = new ReceiverOptions
         {
@@ -67,12 +71,27 @@ public class BotService
     {
         using (var cts = new CancellationTokenSource())
         {
+            await using (DatabaseService database = await _databaseServiceFactory.CreateDbContextAsync(cts.Token))
+            {
+                await InitializeExamplesIfNeedAsync(database.Examples, cts.Token);
+                await database.SaveChangesAsync(cts.Token);
+            }
+            
             _botClient.StartReceiving(HandleUpdateAsync, HandleError, _receiverOptions, cts.Token);
         
             User me = await _botClient.GetMeAsync(cancellationToken: cts.Token);
             _logger.LogInformation($"{me.FirstName} is launched");
             
             await Task.Delay(-1, cts.Token);
+        }
+    }
+
+    private async Task InitializeExamplesIfNeedAsync(DbSet<Example> examples, CancellationToken cancellationToken)
+    {
+        if (!await examples.AnyAsync(cancellationToken: cancellationToken))
+        {
+            IEnumerable<Example> initialExamples = await _examplesReader.UploadExamplesAsync();
+            await examples.AddRangeAsync(initialExamples, cancellationToken);
         }
     }
 
@@ -109,11 +128,8 @@ public class BotService
         
         using (DatabaseService database = await _databaseServiceFactory.CreateDbContextAsync(cancellationToken))
         {
-            if (!await database.Examples.AnyAsync(cancellationToken: cancellationToken))
-            {
-                throw new InvalidOperationException("Examples database is empty!");
-            }
-
+            await InitializeExamplesIfNeedAsync(database.Examples, cancellationToken);
+            
             UserData foundUserData = database.UserData
                 .Include(userData => userData.CurrentExample)
                 .FirstOrDefault(userData => userData.UserId == sender.Id);

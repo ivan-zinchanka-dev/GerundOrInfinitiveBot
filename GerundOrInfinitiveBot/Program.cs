@@ -1,5 +1,6 @@
 ﻿using GerundOrInfinitiveBot.Services.Bot;
 using GerundOrInfinitiveBot.Services.Database;
+using GerundOrInfinitiveBot.Services.DataLoading;
 using GerundOrInfinitiveBot.Services.Reporting;
 using GerundOrInfinitiveBot.Settings;
 using Microsoft.Extensions.Configuration;
@@ -10,7 +11,7 @@ using Serilog;
 
 namespace GerundOrInfinitiveBot {
     
-    internal class Program
+    internal static class Program
     {
         private const string AppSettingsFileName = "appsettings.json";
         private static BotService _botService;
@@ -35,9 +36,10 @@ namespace GerundOrInfinitiveBot {
 
                 appBuilder.Services
                     .AddOptions()
-                    .Configure<ConnectionSettings>(appBuilder.Configuration.GetSection("ConnectionStrings"))
-                    .Configure<EmailSettings>(appBuilder.Configuration.GetSection("EmailSettings"))
-                    .Configure<BotSettings>(appBuilder.Configuration.GetSection("BotSettings"))
+                    .Configure<ConnectionSettings>(appBuilder.Configuration.GetSection(nameof(ConnectionSettings)))
+                    .Configure<EmailSettings>(appBuilder.Configuration.GetSection(nameof(EmailSettings)))
+                    .Configure<BotSettings>(appBuilder.Configuration.GetSection(nameof(BotSettings)))
+                    .AddTransient<ExamplesReader>()
                     .AddTransient<ReportService>()
                     .AddTransient<ImpressionService>()
                     .AddTransient<SessionService>()
